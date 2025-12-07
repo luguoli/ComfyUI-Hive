@@ -12,7 +12,7 @@ const SUPABASE_URL = 'https://mgkcodofcjbuxpejdusf.supabase.co';  // 请填入�
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1na2NvZG9mY2pidXhwZWpkdXNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3ODI5MzMsImV4cCI6MjA4MDM1ODkzM30.KKTXgF8xg6CkfLmFYiEomtNmWJBZUPDeDzhpYTs9ST0';   // 请填入您的 Supabase 匿名密钥 (anon key)
 
 // 插件版本号
-const PLUGIN_VERSION = '1.0.1';
+const PLUGIN_VERSION = '1.0.2';
 
 // 全局变量 - 按钮需要访问
 let isInitialized = false; // 是否已初始化
@@ -252,6 +252,7 @@ app.registerExtension({
         let latestMessageTimestamp = null; // 当前已展示消息中最新的时间戳（用于断线重连补齐）
         let isLoadingHistory = false; // 是否正在加载历史消息
         let hasMoreHistory = true; // 是否还有更多历史消息
+        let currentScrollHandler = null; // 当前的滚动监听器，用于正确移除
         // 灵感模块状态
         let inspirationState = {
             category: 'image',
@@ -611,8 +612,26 @@ app.registerExtension({
                 hasMoreHistory = true;
                 isLoadingHistory = false;
 
+                // 移除旧的滚动监听器（如果有）
+                const chatMessagesForCleanup = document.querySelector('.chat-messages');
+                if (chatMessagesForCleanup && currentScrollHandler) {
+                    chatMessagesForCleanup.removeEventListener('scroll', currentScrollHandler);
+                    currentScrollHandler = null;
+                }
+
                 // 加载最新的10条消息
+                // 在加载前再次检查当前频道是否仍然是目标频道（防止快速切换频道时的竞态条件）
+                if (currentChannel !== channelId) {
+                    console.log('🐝 Hive: Channel changed during message loading, aborting');
+                    return;
+                }
                 const historyMessages = await fetchChannelMessages(channelId, 10);
+                
+                // 加载完成后再次检查当前频道是否仍然是目标频道
+                if (currentChannel !== channelId) {
+                    console.log('🐝 Hive: Channel changed after message loading, discarding messages');
+                    return;
+                }
 
                 // 记录最早和最新的消息时间戳
                 if (historyMessages.length > 0) {
@@ -667,21 +686,49 @@ app.registerExtension({
                         return;
                     }
 
+                    // 获取当前频道ID（使用全局变量，确保总是使用最新的频道）
+                    const targetChannelId = currentChannel;
+                    if (!targetChannelId) {
+                        return;
+                    }
+
+                    // 检查当前频道是否仍然是创建监听器时的频道（防止切换频道后旧监听器触发）
+                    if (targetChannelId !== channelId) {
+                        console.log('🐝 Hive: Scroll handler triggered for wrong channel, ignoring. Current:', targetChannelId, 'Handler channel:', channelId);
+                        return;
+                    }
+
                     // 检查是否滚动到顶部（允许 50px 的误差）
                     if (currentChatMessages.scrollTop <= 50) {
                         isLoadingHistory = true;
                         console.log('🐝 Hive: Scrolled to top, loading more messages...', {
                             scrollTop: currentChatMessages.scrollTop,
                             oldestMessageTimestamp,
-                            hasMoreHistory
+                            hasMoreHistory,
+                            currentChannel: targetChannelId
                         });
+
+                        // 再次检查当前频道（防止在检查到滚动和开始加载之间切换频道）
+                        if (currentChannel !== targetChannelId) {
+                            console.log('🐝 Hive: Channel changed before loading, aborting');
+                            isLoadingHistory = false;
+                            return;
+                        }
 
                         // 显示加载提示
                         showLoadingIndicator(currentChatMessages);
 
                         try {
-                            // 加载更多历史消息
-                            const moreMessages = await fetchChannelMessages(channelId, 10, oldestMessageTimestamp);
+                            // 加载更多历史消息（使用当前频道ID）
+                            const moreMessages = await fetchChannelMessages(targetChannelId, 10, oldestMessageTimestamp);
+                            
+                            // 加载完成后再次检查当前频道
+                            if (currentChannel !== targetChannelId) {
+                                console.log('🐝 Hive: Channel changed after loading messages, discarding');
+                                isLoadingHistory = false;
+                                hideLoadingIndicator(currentChatMessages);
+                                return;
+                            }
                             console.log('🐝 Hive: Loaded more history messages:', moreMessages.length, {
                                 oldestMessageTimestamp,
                                 firstMessageTime: moreMessages.length > 0 ? moreMessages[0].created_at : null
@@ -736,8 +783,8 @@ app.registerExtension({
 
                 // 确保 chatMessages 元素存在后再添加监听器
                 if (chatMessages) {
-                    // 移除旧的滚动监听器（如果有）
-                    chatMessages.removeEventListener('scroll', handleScroll);
+                    // 保存新的滚动监听器引用，以便后续正确移除
+                    currentScrollHandler = handleScroll;
                     // 添加新的滚动监听器
                     chatMessages.addEventListener('scroll', handleScroll, { passive: true });
                 } else {
