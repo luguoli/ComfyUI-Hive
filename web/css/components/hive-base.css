@@ -1,0 +1,147 @@
+/* ================================================
+   HIVE BASE STYLES - Core & Utils
+   ================================================ */
+
+/* 通用 */
+.hidden {
+    display: none !important;
+}
+
+/* 按钮样式保持 */
+.hive-v1-btn {
+    /* 蜜蜂蜂巢背景 - 使用 SVG 创建六边形蜂巢图案，颜色更深，线条更明显 */
+    background-image: 
+        url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='honeycomb' x='0' y='0' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M20 0 L35 10 L35 30 L20 40 L5 30 L5 10 Z' fill='%23ffbd2e' fill-opacity='0.25' stroke='%23ffbd2e' stroke-width='1.5' stroke-opacity='0.6'/%3E%3Cpath d='M20 0 L35 10 L35 30 L20 40 L5 30 L5 10 Z' transform='translate(20, 20)' fill='%23ffbd2e' fill-opacity='0.25' stroke='%23ffbd2e' stroke-width='1.5' stroke-opacity='0.6'/%3E%3Cpath d='M20 0 L35 10 L35 30 L20 40 L5 30 L5 10 Z' transform='translate(-20, 20)' fill='%23ffbd2e' fill-opacity='0.25' stroke='%23ffbd2e' stroke-width='1.5' stroke-opacity='0.6'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23honeycomb)'/%3E%3C/svg%3E"),
+        linear-gradient(135deg, rgba(255, 189, 46, 0.15) 0%, rgba(245, 166, 35, 0.1) 100%);
+    background-color: rgba(255, 189, 46, 0.08);
+    background-size: 40px 40px, 100% 100%;
+    color: var(--fg-color, #fff);
+    font-weight: 600;
+    border: 1px solid rgba(255, 189, 46, 0.5);
+    cursor: pointer;
+    padding: 0 12px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: 5px;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+.hive-v1-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255, 189, 46, 0.2) 0%, rgba(245, 166, 35, 0.12) 100%);
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+.hive-v1-btn:hover {
+    background-image: 
+        url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='honeycomb-hover' x='0' y='0' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M20 0 L35 10 L35 30 L20 40 L5 30 L5 10 Z' fill='%23ffbd2e' fill-opacity='0.35' stroke='%23ffbd2e' stroke-width='2' stroke-opacity='0.8'/%3E%3Cpath d='M20 0 L35 10 L35 30 L20 40 L5 30 L5 10 Z' transform='translate(20, 20)' fill='%23ffbd2e' fill-opacity='0.35' stroke='%23ffbd2e' stroke-width='2' stroke-opacity='0.8'/%3E%3Cpath d='M20 0 L35 10 L35 30 L20 40 L5 30 L5 10 Z' transform='translate(-20, 20)' fill='%23ffbd2e' fill-opacity='0.35' stroke='%23ffbd2e' stroke-width='2' stroke-opacity='0.8'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23honeycomb-hover)'/%3E%3C/svg%3E"),
+        linear-gradient(135deg, rgba(255, 189, 46, 0.25) 0%, rgba(245, 166, 35, 0.18) 100%);
+    background-color: rgba(255, 189, 46, 0.18);
+    background-size: 40px 40px, 100% 100%;
+    color: #ffbd2e;
+    border-color: #ffbd2e;
+    box-shadow: 0 0 12px rgba(255, 189, 46, 0.35);
+}
+.hive-v1-btn:hover::before {
+    opacity: 1;
+}
+.hive-v1-btn span {
+    position: relative;
+    z-index: 1;
+}
+
+.hive-legacy-btn {
+    background: linear-gradient(90deg, #ffbd2e, #f5a623);
+    color: black !important;
+    font-weight: bold;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    width: 100%;
+}
+
+.hive-fallback-btn {
+    position: fixed;
+    top: 10px;
+    right: 100px;
+    z-index: 9000;
+    background: #ffbd2e;
+    color: #000;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    cursor: pointer;
+}
+
+/* 屏幕右侧固定按钮 */
+.hive-sidebar-toggle-btn {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 9998;
+    background-image: 
+        url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='honeycomb-side' x='0' y='0' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M20 0 L35 10 L35 30 L20 40 L5 30 L5 10 Z' fill='%23ffbd2e' fill-opacity='0.25' stroke='%23ffbd2e' stroke-width='1.5' stroke-opacity='0.6'/%3E%3Cpath d='M20 0 L35 10 L35 30 L20 40 L5 30 L5 10 Z' transform='translate(20, 20)' fill='%23ffbd2e' fill-opacity='0.25' stroke='%23ffbd2e' stroke-width='1.5' stroke-opacity='0.6'/%3E%3Cpath d='M20 0 L35 10 L35 30 L20 40 L5 30 L5 10 Z' transform='translate(-20, 20)' fill='%23ffbd2e' fill-opacity='0.25' stroke='%23ffbd2e' stroke-width='1.5' stroke-opacity='0.6'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23honeycomb-side)'/%3E%3C/svg%3E"),
+        linear-gradient(135deg, rgba(255, 189, 46, 0.15) 0%, rgba(245, 166, 35, 0.1) 100%);
+    background-color: rgba(255, 189, 46, 0.08);
+    background-size: 40px 40px, 100% 100%;
+    color: #000;
+    font-weight: 600;
+    border: 1px solid rgba(255, 189, 46, 0.5);
+    border-right: none;
+    cursor: pointer;
+    padding: 16px 12px;
+    border-radius: 12px 0 0 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.3s;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
+    min-width: 50px;
+}
+
+.hive-sidebar-toggle-btn:hover {
+    background-image: 
+        url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='honeycomb-side-hover' x='0' y='0' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M20 0 L35 10 L35 30 L20 40 L5 30 L5 10 Z' fill='%23ffbd2e' fill-opacity='0.35' stroke='%23ffbd2e' stroke-width='2' stroke-opacity='0.8'/%3E%3Cpath d='M20 0 L35 10 L35 30 L20 40 L5 30 L5 10 Z' transform='translate(20, 20)' fill='%23ffbd2e' fill-opacity='0.35' stroke='%23ffbd2e' stroke-width='2' stroke-opacity='0.8'/%3E%3Cpath d='M20 0 L35 10 L35 30 L20 40 L5 30 L5 10 Z' transform='translate(-20, 20)' fill='%23ffbd2e' fill-opacity='0.35' stroke='%23ffbd2e' stroke-width='2' stroke-opacity='0.8'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23honeycomb-side-hover)'/%3E%3C/svg%3E"),
+        linear-gradient(135deg, rgba(255, 189, 46, 0.25) 0%, rgba(245, 166, 35, 0.18) 100%);
+    background-color: rgba(255, 189, 46, 0.18);
+    background-size: 40px 40px, 100% 100%;
+    color: #fff;
+    border-color: #ffbd2e;
+    box-shadow: -4px 0 12px rgba(255, 189, 46, 0.35);
+    padding-right: 16px;
+}
+
+.hive-sidebar-toggle-btn span {
+    position: relative;
+    z-index: 1;
+    display: block;
+    white-space: nowrap;
+}
+
+.hive-sidebar-toggle-btn span:first-child {
+    font-size: 24px;
+}
+
+.hive-sidebar-toggle-btn span:last-child {
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+
+/* 当侧边栏打开时，隐藏右侧按钮（通过 JavaScript 控制） */

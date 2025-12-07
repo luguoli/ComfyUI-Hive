@@ -1,0 +1,193 @@
+/* ================================================
+   HIVE UPLOAD STYLES - File Upload Components
+   ================================================ */
+
+/* 上传工具栏样式 */
+.hive-input-tools {
+    display: flex;
+    gap: 4px;
+    padding: 0;
+    margin-bottom: 0;
+    align-items: center;
+    position: relative; /* 为表情选择器提供定位上下文 */
+    flex: 1; /* 占据可用空间 */
+}
+
+.hive-upload-btn {
+    width: 24px;
+    height: 24px;
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.hive-upload-btn:hover {
+    background: #555;
+    border-color: #777;
+}
+
+.hive-upload-btn:active {
+    background: #666;
+}
+
+/* JSON工作流上传按钮特殊样式 */
+.hive-upload-json-btn {
+    font-size: 16px;
+}
+
+.hive-upload-json-btn:hover {
+    background: #555;
+    border-color: #777;
+}
+
+/* 消息提醒开关按钮样式 */
+.hive-sound-toggle-btn {
+    margin-left: auto; /* 自动推到最右侧，与发送按钮对齐 */
+    font-size: 14px;
+    transition: transform 0.2s ease;
+    flex-shrink: 0; /* 不收缩 */
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    width: auto;
+    height: auto;
+    min-width: 60px;
+    justify-content: center;
+}
+
+.hive-sound-toggle-btn .hive-sound-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.hive-sound-toggle-btn .hive-sound-text {
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.hive-sound-toggle-btn:hover {
+    background: #555;
+    border-color: #777;
+    transform: scale(1.05);
+}
+
+.hive-sound-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+/* 文件预览组件样式 */
+.hive-file-preview {
+    margin-top: 4px;
+    padding: 6px 10px;
+    background: #1e1e1e;
+    border: 1px solid #444;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.hive-file-preview-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.hive-file-preview-content img {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.hive-file-preview-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.hive-file-preview-name {
+    font-size: 14px;
+    color: #fff;
+    font-weight: 500;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.hive-file-preview-type {
+    font-size: 12px;
+    color: #888;
+    font-weight: normal;
+}
+
+.hive-file-preview-remove {
+    width: 24px;
+    height: 24px;
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.hive-file-preview-remove:hover {
+    background: #ff4444;
+    border-color: #ff6666;
+}
+
+/* JSON预览特殊样式 */
+.hive-json-preview {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.hive-json-icon {
+    width: 48px;
+    height: 48px;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+/* 拖拽上传样式 */
+.hive-input-area {
+    position: relative;
+}
+
+.hive-input-area.drag-over {
+    background: rgba(255, 189, 46, 0.1);
+    border: 2px dashed #ffbd2e;
+    border-radius: 8px;
+}
+
+.hive-input-area.drag-over .hive-file-preview {
+    opacity: 0.5;
+}

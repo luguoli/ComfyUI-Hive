@@ -1,0 +1,1665 @@
+/* ================================================
+   HIVE MODALS STYLES - Overlays & Popups
+   ================================================ */
+
+/* Header */
+.hive-header {
+    padding: 15px;
+    border-bottom: none;
+    background: #252525;
+    font-weight: bold;
+    font-size: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+.hive-header-buttons {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+}
+.hive-close-btn, .hive-settings-btn {
+    cursor: pointer;
+    opacity: 0.7;
+    padding: 5px;
+}
+.hive-close-btn:hover, .hive-settings-btn:hover {
+    opacity: 1;
+    color: #ffbd2e;
+}
+
+/* Settings Modal - 使用与安装指南相同的样式 */
+#hive-settings-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* 强制允许选中文字 */
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    /* 把鼠标指针改回默认的"文本输入"或"自动"样式 */
+    cursor: auto !important;
+}
+
+.hive-settings-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: hive-settings-fade-in 0.2s ease-out;
+}
+
+@keyframes hive-settings-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.hive-settings-content {
+    background: linear-gradient(135deg, #1e1e1e 0%, #252525 100%);
+    border: 1px solid #444;
+    border-radius: 16px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+    animation: hive-settings-slide-up 0.3s ease-out;
+}
+
+@keyframes hive-settings-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.hive-settings-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+}
+
+.hive-settings-header h2 {
+    margin: 0;
+    color: #ffbd2e;
+    font-size: 20px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hive-settings-close {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.hive-settings-close:hover {
+    background: #333;
+    color: #fff;
+}
+
+.hive-settings-body {
+    padding: 24px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    scrollbar-width: auto;
+    scrollbar-color: #888 #2a2a2a;
+}
+
+.hive-settings-body::-webkit-scrollbar {
+    width: 12px;
+}
+
+.hive-settings-body::-webkit-scrollbar-track {
+    background: #2a2a2a;
+    border-radius: 6px;
+    border: 1px solid #333;
+}
+
+.hive-settings-body::-webkit-scrollbar-thumb {
+    background: #666;
+    border-radius: 6px;
+    border: 2px solid #2a2a2a;
+    min-height: 40px;
+}
+
+.hive-settings-body::-webkit-scrollbar-thumb:hover {
+    background: #888;
+    border-color: #444;
+}
+
+.hive-settings-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.hive-settings-section {
+    padding-bottom: 24px;
+    border-bottom: 1px solid #333;
+}
+
+.hive-settings-section:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+#hive-settings-modal h3 {
+    margin: 0 0 20px 0;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #ffbd2e;
+}
+
+/* Settings Modal - 表单元素样式 */
+.hive-settings-user-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.hive-settings-avatar-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.hive-settings-avatar-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid #444;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.hive-settings-avatar-preview:hover {
+    border-color: #ffbd2e;
+    transform: scale(1.05);
+}
+
+.hive-settings-btn-random-avatar {
+    margin-top: 12px;
+    padding: 8px 16px;
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.hive-settings-btn-random-avatar:hover {
+    background: #444;
+    border-color: #666;
+    transform: translateY(-1px);
+}
+
+.hive-settings-user-details {
+    flex: 1;
+}
+
+.hive-settings-form-group {
+    margin-bottom: 16px;
+}
+
+.hive-settings-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #ddd;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.hive-settings-input,
+.hive-settings-select {
+    width: 100%;
+    padding: 10px 12px;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.hive-settings-input:focus,
+.hive-settings-select:focus {
+    outline: none;
+    border-color: #ffbd2e;
+    box-shadow: 0 0 0 3px rgba(255, 189, 46, 0.1);
+}
+
+.hive-settings-input::placeholder {
+    color: #666;
+}
+
+.hive-settings-error {
+    color: #f44336;
+    font-size: 12px;
+    margin-top: 6px;
+    display: none;
+}
+
+.hive-settings-user-id {
+    margin-top: 12px;
+    font-size: 12px;
+    color: #888;
+}
+
+.hive-settings-btn-save {
+    margin-top: 16px;
+    padding: 10px 24px;
+    background: linear-gradient(135deg, #ffbd2e 0%, #ffa500 100%);
+    border: none;
+    border-radius: 8px;
+    color: #000;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(255, 189, 46, 0.3);
+}
+
+.hive-settings-btn-save:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ffd84d 0%, #ffbd2e 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 189, 46, 0.4);
+}
+
+.hive-settings-btn-save:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.hive-settings-auto-translate-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.hive-settings-auto-translate-title {
+    flex-shrink: 0;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    min-width: 100px;
+    padding-top: 2px;
+}
+
+.hive-settings-auto-translate-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    flex: 1;
+}
+
+.hive-settings-auto-translate-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    cursor: pointer;
+    accent-color: #ffbd2e;
+}
+
+.hive-settings-auto-translate-label span {
+    flex: 1;
+    color: #ccc;
+    font-size: 13px;
+    line-height: 1.5;
+    cursor: pointer;
+}
+
+.hive-settings-auto-translate-label span:hover {
+    color: #fff;
+}
+
+.hive-settings-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #333;
+    display: flex;
+    justify-content: flex-end;
+    background: #1e1e1e;
+}
+
+.hive-settings-close-btn {
+    background: linear-gradient(135deg, #ffbd2e 0%, #ffa500 100%);
+    border: none;
+    border-radius: 8px;
+    color: #000;
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(255, 189, 46, 0.3);
+}
+
+.hive-settings-close-btn:hover {
+    background: linear-gradient(135deg, #ffd84d 0%, #ffbd2e 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 189, 46, 0.4);
+}
+
+.hive-settings-close-btn:active {
+    transform: translateY(0);
+}
+
+/* Settings Modal - 关于部分样式 */
+.hive-settings-about {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.hive-settings-about-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #2a2a2a;
+    border-radius: 8px;
+    border: 1px solid #333;
+    transition: all 0.2s ease;
+}
+
+.hive-settings-about-item:hover {
+    background: #2f2f2f;
+    border-color: #444;
+}
+
+.hive-settings-about-label {
+    color: #ccc;
+    font-size: 14px;
+    font-weight: 500;
+    min-width: 80px;
+    flex-shrink: 0;
+}
+
+.hive-settings-about-link {
+    color: #ffbd2e;
+    font-size: 14px;
+    text-decoration: none;
+    word-break: break-all;
+    transition: all 0.2s ease;
+}
+
+.hive-settings-about-link:hover {
+    color: #ffd84d;
+    text-decoration: underline;
+}
+
+.hive-settings-about-email {
+    color: #ffbd2e;
+    font-size: 14px;
+    text-decoration: none;
+    word-break: break-all;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.hive-settings-about-email:hover {
+    color: #ffd84d;
+    text-decoration: underline;
+}
+
+.hive-settings-version {
+    color: #ffbd2e;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.hive-settings-feedback-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #333;
+}
+
+.hive-settings-feedback-btn {
+    width: 100%;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #ffbd2e 0%, #ffa500 100%);
+    border: none;
+    border-radius: 8px;
+    color: #000;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.hive-settings-feedback-btn:hover {
+    background: linear-gradient(135deg, #ffd84d 0%, #ffbd2e 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 189, 46, 0.4);
+}
+
+.hive-settings-about-note {
+    margin-top: 8px;
+    padding: 12px;
+    background: rgba(255, 189, 46, 0.1);
+    border: 1px solid rgba(255, 189, 46, 0.2);
+    border-radius: 8px;
+    color: #ffbd2e;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Video Player Modal */
+
+/* Model Detail Panel */
+#hive-model-detail {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 400px;
+    height: 100%;
+    background-color: #1e1e1e;
+    border-left: 1px solid #333;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    transition: right 0.3s;
+    z-index: 10000;
+}
+#hive-model-detail .model-cover img {
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
+}
+#hive-model-detail .model-info h3 {
+    margin-top: 20px;
+    font-size: 20px;
+}
+#hive-model-detail .model-author {
+    color: #999;
+}
+#hive-model-detail .model-tags span {
+    display: inline-block;
+    padding: 4px 8px;
+    background: #333;
+    margin-right: 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+#hive-model-detail .model-desc {
+    margin: 20px 0;
+    line-height: 1.6;
+}
+#hive-model-detail .download-btn {
+    background: #ffbd2e;
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+/* 灯箱预览 */
+#hive-lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* 这些样式会被容器内的样式覆盖，保留作为备用 */
+#hive-lightbox img,
+#hive-video-modal video {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    cursor: default;
+}
+
+.hive-lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.7);
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.hive-lightbox-close:hover {
+    background: rgba(0, 0, 0, 0.9);
+    transform: scale(1.1);
+}
+
+.hive-lightbox-content-container {
+    cursor: default;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.hive-lightbox-image-container,
+.hive-lightbox-video-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-width: 0;
+    min-height: 0;
+}
+
+.hive-lightbox-image-container img,
+.hive-lightbox-video-container video {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+}
+
+#hive-video-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+#hive-video-modal .hive-lightbox-content-container {
+    cursor: default;
+    box-sizing: border-box;
+}
+
+.hive-lightbox-info-panel {
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 8px;
+    padding: 16px;
+    color: #eee;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.hive-lightbox-info-item {
+    margin-bottom: 16px;
+}
+
+.hive-lightbox-info-item:last-child {
+    margin-bottom: 0;
+}
+
+.hive-lightbox-info-panel-portrait .hive-lightbox-info-item {
+    margin-bottom: 12px;
+}
+
+.hive-lightbox-info-panel-landscape .hive-lightbox-info-item {
+    margin-bottom: 12px;
+}
+
+.hive-lightbox-info-label {
+    font-weight: 600;
+    color: #ffbd2e;
+    margin-bottom: 6px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.hive-lightbox-info-panel-portrait .hive-lightbox-info-label {
+    margin-bottom: 0;
+    font-size: 13px;
+    min-width: 80px;
+    flex-shrink: 0;
+}
+
+.hive-lightbox-info-panel-landscape .hive-lightbox-info-label {
+    margin-bottom: 0;
+    font-size: 13px;
+    min-width: 100px;
+    flex-shrink: 0;
+}
+
+.hive-lightbox-info-value {
+    color: #ddd;
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hive-lightbox-caption {
+    max-width: 90%;
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 6px;
+    color: #eee;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    text-align: left;
+}
+
+/* Enhanced Lightbox for Workflow */
+#hive-lightbox .lightbox-content {
+    display: flex;
+    gap: 20px;
+    max-width: 90%;
+    max-height: 90%;
+}
+#hive-lightbox img {
+    max-width: 50%;
+    object-fit: contain;
+}
+#hive-lightbox .node-list {
+    flex: 1;
+    color: #fff;
+}
+#hive-lightbox .node-list h4 {
+    margin: 0 0 10px 0;
+}
+#hive-lightbox .node-items {
+    max-height: 600px;
+    overflow-y: auto;
+}
+#hive-lightbox .node-items div {
+    padding: 5px;
+    border-bottom: 1px solid #444;
+}
+
+/* 自定义确认对话框样式 */
+#hive-confirm-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hive-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hive-confirm-content {
+    background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+    border: 1px solid #444;
+    border-radius: 12px;
+    padding: 30px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    text-align: center;
+    animation: hive-confirm-show 0.2s ease-out;
+}
+
+@keyframes hive-confirm-show {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.hive-confirm-message {
+    color: #fff;
+    font-size: 16px;
+    line-height: 1.5;
+    margin-bottom: 25px;
+    font-family: sans-serif;
+}
+
+.hive-confirm-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.hive-confirm-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 80px;
+}
+
+.hive-confirm-cancel {
+    background: #555;
+    color: #fff;
+    border: 1px solid #666;
+}
+
+.hive-confirm-cancel:hover {
+    background: #666;
+    border-color: #777;
+}
+
+.hive-confirm-ok {
+    background: #ffbd2e;
+    color: #000;
+    font-weight: 600;
+}
+
+.hive-confirm-ok:hover {
+    background: #ffd84d;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 189, 46, 0.4);
+}
+
+.hive-confirm-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(255, 189, 46, 0.3);
+}
+
+/* 节点安装指南弹层 */
+#hive-node-install-modal,
+#hive-node-installer-guide-modal,
+#hive-model-downloader-guide-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 安装指南弹层内容区域允许文字选择 */
+.hive-install-content,
+.hive-install-content * {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    cursor: auto !important;
+}
+
+/* 安装指南弹层按钮等交互元素除外 */
+.hive-install-content button,
+.hive-install-content input,
+.hive-install-content select,
+.hive-install-content textarea,
+.hive-install-content a {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    cursor: pointer !important;
+}
+
+.hive-install-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: hive-install-fade-in 0.2s ease-out;
+}
+
+@keyframes hive-install-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.hive-install-content {
+    background: linear-gradient(135deg, #1e1e1e 0%, #252525 100%);
+    border: 1px solid #444;
+    border-radius: 16px;
+    max-width: 700px;
+    width: 90%;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+    animation: hive-install-slide-up 0.3s ease-out;
+}
+
+@keyframes hive-install-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.hive-install-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+}
+
+.hive-install-header h2 {
+    margin: 0;
+    color: #ffbd2e;
+    font-size: 20px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hive-install-close {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.hive-install-close:hover {
+    background: #333;
+    color: #fff;
+}
+
+.hive-install-body {
+    padding: 24px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    /* 添加明显的滚动条样式 */
+    scrollbar-width: auto; /* 改为auto，让滚动条更明显 */
+    scrollbar-color: #888 #2a2a2a; /* 更明显的颜色对比 */
+}
+
+.hive-install-body::-webkit-scrollbar {
+    width: 12px; /* 增加宽度，让滚动条更明显 */
+}
+
+.hive-install-body::-webkit-scrollbar-track {
+    background: #2a2a2a;
+    border-radius: 6px;
+    border: 1px solid #333;
+}
+
+.hive-install-body::-webkit-scrollbar-thumb {
+    background: #666;
+    border-radius: 6px;
+    border: 2px solid #2a2a2a;
+    min-height: 40px; /* 确保滚动条足够大，容易看到 */
+}
+
+.hive-install-body::-webkit-scrollbar-thumb:hover {
+    background: #888;
+    border-color: #444;
+}
+
+/* 当内容可滚动时，添加滚动指示 */
+.hive-install-body::after {
+    content: '';
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 20px;
+    background: linear-gradient(to top, rgba(30, 30, 30, 0.8), transparent);
+    pointer-events: none;
+    display: block;
+}
+
+.hive-install-info {
+    background: #252525;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 24px;
+    border: 1px solid #333;
+}
+
+.hive-install-info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.hive-install-info-item:last-child {
+    margin-bottom: 0;
+}
+
+.hive-install-label {
+    color: #999;
+    font-size: 13px;
+    min-width: 70px;
+    flex-shrink: 0;
+}
+
+.hive-install-value {
+    color: #fff;
+    font-size: 13px;
+    flex: 1;
+    word-break: break-all;
+}
+
+.hive-install-url {
+    color: #4a9eff;
+    text-decoration: none;
+}
+
+.hive-install-url:hover {
+    text-decoration: underline;
+}
+
+.hive-install-steps {
+    margin-bottom: 24px;
+}
+
+.hive-install-steps h3 {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 20px 0;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #ffbd2e;
+}
+
+.hive-install-step {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    align-items: flex-start;
+}
+
+.hive-install-step:last-child {
+    margin-bottom: 0;
+}
+
+.hive-install-step-number {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ffbd2e 0%, #ffa500 100%);
+    color: #000;
+    font-weight: 700;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(255, 189, 46, 0.3);
+}
+
+.hive-install-step-content {
+    flex: 1;
+    color: #ddd;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.hive-install-step-content strong {
+    color: #fff;
+    display: block;
+    margin-bottom: 8px;
+    font-size: 15px;
+}
+
+.hive-install-step-content ul {
+    margin: 8px 0;
+    padding-left: 20px;
+    color: #bbb;
+}
+
+.hive-install-step-content li {
+    margin-bottom: 6px;
+}
+
+.hive-install-step-content kbd {
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #ffbd2e;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.hive-install-step-content code {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #4a9eff;
+}
+
+.hive-install-command-box {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+}
+
+.hive-install-command-box code {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: #4a9eff;
+    word-break: break-all;
+    font-size: 13px;
+}
+
+.hive-install-copy-btn {
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 6px;
+    color: #fff;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.hive-install-copy-btn:hover {
+    background: #444;
+    border-color: #666;
+    transform: translateY(-1px);
+}
+
+.hive-install-copy-btn:active {
+    transform: translateY(0);
+}
+
+.hive-install-tip {
+    margin: 8px 0 0 0;
+    color: #999;
+    font-size: 12px;
+    font-style: italic;
+}
+
+.hive-install-note {
+    background: rgba(255, 189, 46, 0.1);
+    border: 1px solid rgba(255, 189, 46, 0.2);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 24px;
+    color: #ffbd2e;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.hive-install-note strong {
+    color: #ffbd2e;
+    display: block;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.hive-install-note p {
+    color: #ffbd2e;
+    margin: 0;
+}
+
+.hive-install-note ul {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+    color: #ffbd2e;
+    font-size: 13px;
+}
+
+.hive-install-note li {
+    margin-bottom: 6px;
+    color: #ffbd2e;
+}
+
+.hive-install-note a {
+    color: #4a9eff;
+    text-decoration: none;
+}
+
+.hive-install-note a:hover {
+    text-decoration: underline;
+}
+
+.hive-install-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #1e1e1e;
+}
+
+.hive-install-dont-show-row {
+    display: flex;
+    align-items: center;
+}
+
+.hive-install-dont-show-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.hive-install-dont-show-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #ffbd2e;
+}
+
+/* 反馈弹层样式 */
+#hive-feedback-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    cursor: auto !important;
+}
+
+.hive-feedback-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: hive-settings-fade-in 0.2s ease-out;
+}
+
+.hive-feedback-content {
+    background: linear-gradient(135deg, #1e1e1e 0%, #252525 100%);
+    border: 1px solid #444;
+    border-radius: 16px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+    animation: hive-settings-slide-up 0.3s ease-out;
+}
+
+.hive-feedback-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+}
+
+.hive-feedback-header h2 {
+    margin: 0;
+    color: #ffbd2e;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.hive-feedback-close {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.hive-feedback-close:hover {
+    background: #333;
+    color: #fff;
+}
+
+.hive-feedback-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.hive-feedback-form-group {
+    margin-bottom: 16px;
+}
+
+.hive-feedback-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #ddd;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.hive-feedback-input,
+.hive-feedback-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+}
+
+.hive-feedback-input:focus,
+.hive-feedback-textarea:focus {
+    outline: none;
+    border-color: #ffbd2e;
+    box-shadow: 0 0 0 3px rgba(255, 189, 46, 0.1);
+}
+
+.hive-feedback-textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.hive-feedback-info {
+    margin-top: 12px;
+    padding: 10px;
+    background: rgba(255, 189, 46, 0.1);
+    border: 1px solid rgba(255, 189, 46, 0.2);
+    border-radius: 6px;
+    font-size: 12px;
+    color: #ccc;
+}
+
+.hive-feedback-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #333;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.hive-feedback-btn-cancel,
+.hive-feedback-btn-submit {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.hive-feedback-btn-cancel {
+    background: #333;
+    color: #ddd;
+}
+
+.hive-feedback-btn-cancel:hover {
+    background: #444;
+}
+
+.hive-feedback-btn-submit {
+    background: linear-gradient(135deg, #ffbd2e 0%, #ffa500 100%);
+    color: #000;
+}
+
+.hive-feedback-btn-submit:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ffd84d 0%, #ffbd2e 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 189, 46, 0.4);
+}
+
+.hive-feedback-btn-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* 版本更新通知弹层 */
+#hive-update-notification-modal,
+#hive-force-update-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hive-update-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: hive-settings-fade-in 0.2s ease-out;
+}
+
+.hive-update-content {
+    background: linear-gradient(135deg, #1e1e1e 0%, #252525 100%);
+    border: 1px solid #444;
+    border-radius: 16px;
+    max-width: 500px;
+    width: 90%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+    animation: hive-settings-slide-up 0.3s ease-out;
+}
+
+.hive-update-content.hive-update-force {
+    border-color: #ff4444;
+}
+
+.hive-update-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+}
+
+.hive-update-header h2 {
+    margin: 0;
+    color: #ffbd2e;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.hive-update-close {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.hive-update-close:hover {
+    background: #333;
+    color: #fff;
+}
+
+.hive-update-body {
+    padding: 24px;
+}
+
+.hive-update-body p {
+    margin: 0 0 20px 0;
+    color: #ddd;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.hive-update-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.hive-update-btn-dismiss,
+.hive-update-btn-dont-remind,
+.hive-update-btn-github {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.hive-update-btn-dismiss,
+.hive-update-btn-dont-remind {
+    background: #333;
+    color: #ddd;
+}
+
+.hive-update-btn-dismiss:hover,
+.hive-update-btn-dont-remind:hover {
+    background: #444;
+}
+
+.hive-update-btn-github {
+    background: linear-gradient(135deg, #ffbd2e 0%, #ffa500 100%);
+    color: #000;
+}
+
+.hive-update-btn-github:hover {
+    background: linear-gradient(135deg, #ffd84d 0%, #ffbd2e 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 189, 46, 0.4);
+}
+
+/* 强制更新蒙版 */
+.hive-force-update-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: all;
+}
+
+.hive-force-update-content {
+    text-align: center;
+    padding: 40px;
+    max-width: 400px;
+}
+
+.hive-force-update-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.hive-force-update-content h2 {
+    margin: 0 0 16px 0;
+    color: #ff4444;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.hive-force-update-content p {
+    margin: 0 0 24px 0;
+    color: #ddd;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.hive-force-update-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.hive-force-update-btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+    color: #fff;
+}
+
+.hive-force-update-btn:hover {
+    background: linear-gradient(135deg, #ff6666 0%, #ff4444 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 68, 68, 0.4);
+}
+
+.hive-install-dont-show-label span {
+    color: #ccc;
+    font-size: 13px;
+    transition: color 0.2s ease;
+}
+
+.hive-install-dont-show-label:hover span {
+    color: #fff;
+}
+
+.hive-install-close-btn {
+    background: linear-gradient(135deg, #ffbd2e 0%, #ffa500 100%);
+    border: none;
+    border-radius: 8px;
+    color: #000;
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(255, 189, 46, 0.3);
+}
+
+.hive-install-close-btn:hover {
+    background: linear-gradient(135deg, #ffd84d 0%, #ffbd2e 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 189, 46, 0.4);
+}
+
+.hive-install-close-btn:active {
+    transform: translateY(0);
+}
+
+/* 节点安装器指南示例图片容器 */
+.hive-installer-example-image-container {
+    background: #1a1a1a;
+    border-radius: 10px;
+    padding: 16px;
+    border: 1px solid #333;
+    margin-top: 20px;
+}
+
+.hive-installer-example-image-container img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    border: 1px solid #555;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    display: block;
+    margin: 0 auto;
+}

@@ -1,0 +1,160 @@
+/* web/css/hive-nodes.css - Styles for Hive nodes with buttons and progress bars */
+
+/* 进度条容器 */
+.hive-progress-container {
+    background-color: var(--comfy-input-bg, #2d2d2d);
+    border: 1px solid var(--comfy-menu-border, #4a4a4a);
+    border-radius: 4px;
+    padding: 4px;
+    margin: 4px 0;
+    position: relative;
+    height: 24px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+/* 进度条 */
+.hive-progress-bar {
+    background: linear-gradient(90deg, #4a9eff 0%, #6bb6ff 100%);
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+}
+
+.hive-progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    animation: progress-shine 1.5s infinite;
+}
+
+@keyframes progress-shine {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* 进度文本 */
+.hive-progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--input-text, #ffffff);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 1;
+}
+
+/* 输出文本框 */
+.hive-output-text {
+    background-color: var(--comfy-input-bg, #2d2d2d);
+    color: var(--input-text, #ffffff);
+    border: 1px solid var(--comfy-menu-border, #4a4a4a);
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 11px;
+    font-family: 'Courier New', monospace;
+    resize: vertical;
+    min-height: 140px;
+    max-height: 400px;
+    overflow-y: auto;
+    box-sizing: border-box;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin-top: 4px;
+}
+
+.hive-output-text:focus {
+    outline: 1px solid var(--comfy-menu-border, #4a4a4a);
+    outline-offset: -1px;
+}
+
+.hive-output-text::-webkit-scrollbar {
+    width: 8px;
+}
+
+.hive-output-text::-webkit-scrollbar-track {
+    background: var(--comfy-input-bg, #2d2d2d);
+    border-radius: 4px;
+}
+
+.hive-output-text::-webkit-scrollbar-thumb {
+    background: var(--comfy-menu-border, #4a4a4a);
+    border-radius: 4px;
+}
+
+.hive-output-text::-webkit-scrollbar-thumb:hover {
+    background: var(--comfy-menu-border-hover, #5a5a5a);
+}
+
+/* 按钮样式增强 */
+.litegraph .litegraph-button {
+    background: linear-gradient(180deg, #4a9eff 0%, #3a8eef 100%);
+    border: 1px solid #2a7edf;
+    color: #ffffff;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.litegraph .litegraph-button:hover:not(:disabled) {
+    background: linear-gradient(180deg, #5aaeff 0%, #4a9eff 100%);
+    border-color: #3a8eef;
+    box-shadow: 0 2px 4px rgba(74, 158, 255, 0.3);
+}
+
+.litegraph .litegraph-button:active:not(:disabled) {
+    background: linear-gradient(180deg, #3a8eef 0%, #2a7edf 100%);
+    transform: translateY(1px);
+}
+
+.litegraph .litegraph-button:disabled {
+    background: #4a4a4a;
+    border-color: #3a3a3a;
+    color: #888888;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* 节点顶部间距 - 确保第一个输入框有足够的顶部间距 */
+.litegraph .node[data-node-type*="Hive"] .widget:first-of-type,
+.litegraph .node[data-node-type="HiveModelDownloader"] .widget:first-of-type,
+.litegraph .node[data-node-type="HiveNodeInstaller"] .widget:first-of-type {
+    margin-top: 12px !important;
+    padding-top: 4px;
+}
+
+/* 按钮与输入框之间的间距 */
+.litegraph .node[data-node-type*="Hive"] .litegraph-button,
+.litegraph .node[data-node-type="HiveModelDownloader"] .litegraph-button,
+.litegraph .node[data-node-type="HiveNodeInstaller"] .litegraph-button {
+    margin-top: 12px !important;
+    margin-bottom: 8px !important;
+}
+
+/* 输入框之间的间距 */
+.litegraph .node[data-node-type*="Hive"] .widget:not(.litegraph-button):not([type="hiveProgress"]):not([type="hiveOutput"]) {
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+

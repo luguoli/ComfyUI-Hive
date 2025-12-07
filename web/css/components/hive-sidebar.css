@@ -1,0 +1,218 @@
+/* ================================================
+   HIVE SIDEBAR STYLES - Panel Layout
+   ================================================ */
+
+/* 侧边栏主体 */
+#hive-sidebar {
+    position: fixed;
+    top: 0;
+    right: -380px;
+    width: 380px;
+    height: 100%;
+    background-color: #1e1e1e;
+    z-index: 9999;
+    border-left: 1px solid #333;
+    box-shadow: -4px 0 15px rgba(0,0,0,0.5);
+    transition: right 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: flex;
+    flex-direction: column;
+    color: #fff;
+    font-family: sans-serif;
+    box-sizing: border-box;
+    /* 强制允许选中文字 */
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    /* 把鼠标指针改回默认的"文本输入"或"自动"样式 */
+    cursor: auto !important;
+}
+#hive-sidebar.open { right: 0; }
+
+#hive-sidebar * {
+    box-sizing: border-box;
+}
+
+/* 侧边栏内所有元素默认可选中 - 使用最高优先级 */
+#hive-sidebar * {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    cursor: auto !important;
+}
+
+/* 按钮等交互元素除外 */
+#hive-sidebar button,
+#hive-sidebar .hive-close-btn,
+#hive-sidebar .hive-settings-btn,
+#hive-sidebar input,
+#hive-sidebar textarea,
+#hive-sidebar a[href],
+#hive-sidebar .hive-tag-chip,
+#hive-sidebar .gallery-filter-chip,
+#hive-sidebar .hive-sidebar-toggle-btn,
+#hive-sidebar .channel-item,
+#hive-sidebar .channel-item *,
+#hive-sidebar .back-btn,
+#hive-sidebar .back-btn *,
+#hive-sidebar .hive-sound-toggle-btn,
+#hive-sidebar .hive-sound-toggle-btn * {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    cursor: pointer !important;
+}
+
+/* 自定义滚动条样式 */
+#hive-sidebar ::-webkit-scrollbar {
+    width: 6px;
+}
+#hive-sidebar ::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 3px;
+}
+#hive-sidebar ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#hive-sidebar ::-webkit-scrollbar-thumb:hover {
+    background: #777;
+}
+
+/* 主 Tab */
+#hive-main-tabs {
+    display: flex;
+    background: #252525;
+    border-bottom: 1px solid #333;
+    flex-shrink: 0;
+    position: relative;
+}
+#hive-main-tabs > div {
+    flex: 1;
+    padding: 10px 15px;
+    text-align: center;
+    cursor: pointer !important;
+    border-bottom: 2px solid transparent;
+    transition: border-bottom 0.2s;
+}
+#hive-main-tabs > div.active {
+    border-bottom-color: #ffbd2e;
+    cursor: pointer !important;
+}
+#hive-main-tabs > div:hover {
+    background: #333;
+    cursor: pointer !important;
+}
+.new-msg-dot {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    width: 10px;
+    height: 10px;
+    background: #ff0000;
+    border-radius: 50%;
+    display: none;
+}
+
+.typing-indicator {
+    padding: 8px 20px;
+    font-size: 12px;
+    color: #888;
+    font-style: italic;
+}
+
+/* 频道列表 */
+#hive-channel-list {
+    padding: 20px 10px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.channel-item {
+    padding: 15px 10px;
+    background: #333;
+    border-radius: 8px;
+    cursor: pointer !important;
+    transition: background 0.2s;
+    border: 1px solid transparent;
+}
+
+.channel-item:hover {
+    background: #444;
+    border-color: #555;
+}
+
+.channel-item.active {
+    background: #d48806;
+    border-color: #ffbd2e;
+}
+
+
+.channel-name {
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #ffbd2e;
+    font-size: 16px;
+    flex-wrap: wrap;
+}
+
+.channel-desc {
+    display: block;
+    font-size: 14px;
+    color: #ccc;
+}
+
+/* 在线人数显示 */
+.online-count {
+    color: #22c55e;
+    font-weight: normal;
+    font-size: 12px;
+}
+
+/* 频道列表中的在线人数显示 */
+.channel-online-count {
+    color: #22c55e;
+    font-weight: normal;
+    font-size: 12px;
+    margin-left: 8px;
+    white-space: nowrap;
+    display: inline-block;
+    font-variant-numeric: tabular-nums; /* 使用等宽数字，避免0和1宽度不同导致跳动 */
+}
+
+/* 正在连接显示 */
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #888;
+    font-style: italic;
+}
+
+/* 频道loading状态 */
+.channel-loading {
+    margin-top: 10px;
+    color: #ffbd2e;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* 错误状态 */
+.error {
+    text-align: center;
+    padding: 40px;
+    color: #ff6b6b;
+    font-style: italic;
+}
+
+#hive-content-wrapper {
+    flex-grow: 1;
+    overflow: hidden;
+    display: flex;
+}

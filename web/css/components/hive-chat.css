@@ -1,0 +1,489 @@
+/* ================================================
+   HIVE CHAT STYLES - Chat Interface
+   ================================================ */
+
+#hive-chat-room {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-header {
+    padding: 10px;
+    background: #252525;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+.back-btn {
+    cursor: pointer !important;
+    margin-right: 10px;
+    color: #ffbd2e;
+    user-select: none !important;
+}
+
+.chat-messages {
+    flex: 1 1 0;
+    padding: 20px;
+    padding-bottom: 20px; /* 恢复正常的底部 padding */
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* 减小消息之间的间隔 */
+    min-height: 0;
+    /* 确保滚动条不被遮挡 */
+    margin-bottom: 0;
+    /* 滚动条样式 - 与设置界面一致 */
+    scrollbar-width: thin; /* Firefox: thin 比 auto 更窄 */
+    scrollbar-color: #888 #2a2a2a;
+}
+
+.chat-messages::-webkit-scrollbar {
+    width: 5px !important;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: #2a2a2a;
+    border-radius: 6px;
+    border: 1px solid #333;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: #666;
+    border-radius: 6px;
+    border: 1px solid #2a2a2a;
+    min-height: 40px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background: #888;
+    border-color: #444;
+}
+
+.chat-input-area {
+    flex-shrink: 0; /* 不收缩 */
+    padding: 15px;
+    border-top: 1px solid #333;
+    background: #252525;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow: visible; /* 确保表情选择器不会被裁剪 */
+    /* 移除 absolute 定位，使用 flex 布局 */
+}
+
+/* 发送中禁用状态 */
+.chat-input-area.hive-input-disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* 掉线时的顶部提示条 */
+.hive-reconnect-banner {
+    background: #7a3b00;
+    color: #ffd98a;
+    padding: 6px 10px;
+    font-size: 12px;
+    text-align: center;
+    border-bottom: 1px solid #aa5500;
+}
+
+/* 输入框和按钮的行布局 */
+.chat-input-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+.chat-input-textarea {
+    flex-grow: 1;
+    background: #333;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    color: #fff;
+    resize: none;
+    min-height: 32px;
+    max-height: 120px;
+    height: auto; /* 自动高度 */
+    overflow-y: auto;
+    line-height: 1.4;
+    font-family: inherit;
+}
+.chat-send-btn {
+    background: #ffbd2e;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: opacity 0.2s, background-color 0.2s;
+    min-width: 80px; /* 确保按钮宽度不会变化 */
+}
+
+.chat-send-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.chat-send-btn:hover:not(:disabled) {
+    background: #ffc94d;
+}
+
+.hive-send-loading {
+    display: inline-block;
+    animation: hive-send-spin 1s linear infinite;
+}
+
+@keyframes hive-send-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 消息 */
+.hive-message {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px; /* 减小消息内部元素之间的间隔 */
+    max-width: 100%;
+    box-sizing: border-box; /* 确保不超出容器 */
+}
+.hive-message.self {
+    align-items: flex-end;
+}
+.hive-message-meta {
+    font-size: 12px;
+    color: #aaa;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.hive-message-username {
+    font-weight: 500;
+}
+
+.hive-message-time {
+    color: #888;
+    font-size: 11px;
+    margin-left: 4px;
+}
+.hive-message-meta img {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+}
+.hive-bubble {
+    max-width: calc(100% - 40px); /* 最大宽度：减去左右间隙 */
+    padding: 8px 12px; /* 减小内边距 */
+    background: #333;
+    border-radius: 18px;
+    word-wrap: break-word;
+    word-break: break-word; /* 确保长单词也能换行 */
+    line-height: 1.4;
+    box-sizing: border-box; /* 确保 padding 包含在宽度内 */
+    white-space: pre-wrap; /* 保留换行和空格 */
+    height: auto; /* 确保高度自适应 */
+    min-height: auto; /* 移除最小高度限制 */
+    overflow-wrap: break-word; /* 防止横向滚动 */
+    overflow-x: hidden; /* 隐藏横向滚动条 */
+}
+.hive-message-line {
+    display: flex;
+    align-items: flex-start;
+}
+.hive-message-text {
+    flex: 1;
+    white-space: pre-wrap;
+}
+.hive-message-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 6px;
+}
+.hive-message.self .hive-message-actions {
+    justify-content: flex-end;
+}
+.hive-translate-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.hive-translate-btn .hive-translate-icon {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+.hive-translate-btn:hover {
+    opacity: 0.9;
+}
+.hive-translate-icon-loading {
+    animation: hive-translate-spin 0.9s linear infinite;
+    transform-origin: 50% 50%;
+    stroke: #bbf7d0;
+}
+@keyframes hive-translate-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+.hive-message.self .hive-bubble {
+    background: #d48806;
+    color: #fff;
+}
+.hive-message-image {
+    max-width: 100%; /* 确保图片不超出容器 */
+    width: auto;
+    height: auto;
+    max-height: 300px; /* 限制最大高度 */
+    border-radius: 10px;
+    cursor: pointer;
+    display: block; /* 确保图片是块级元素 */
+    box-sizing: border-box; /* 确保边框包含在宽度内 */
+    object-fit: contain; /* 保持图片比例，不裁剪 */
+}
+.hive-message-tag {
+    margin-top: 5px;
+    padding: 2px 8px;
+    background: #444;
+    border-radius: 10px;
+    font-size: 12px;
+    color: #aaa;
+}
+
+/* 图片容器 */
+.hive-image-container {
+    position: relative;
+    display: inline-block;
+}
+
+/* 工作流底部提示（图片底部） */
+.hive-workflow-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(37, 37, 37, 0.95);
+    border-radius: 0 0 10px 10px;
+    margin-top: -4px; /* 与图片重叠一点 */
+}
+
+.hive-workflow-hint {
+    font-size: 12px;
+    color: #ffbd2e;
+    text-align: center;
+    width: 100%;
+}
+
+.hive-load-workflow-btn-small {
+    background: #ffbd2e;
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.hive-load-workflow-btn-small:hover {
+    background: #ffc94d;
+}
+
+/* 工作流文件显示 */
+.hive-workflow-file {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 8px;
+    background: #2a2a2a;
+    border-radius: 10px;
+    border: 1px solid #444;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    height: auto;
+}
+
+.hive-workflow-icon {
+    width: 48px;
+    height: 48px;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.hive-workflow-info {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    white-space: normal; /* 确保文本可以正常换行 */
+}
+
+.hive-workflow-name {
+    font-weight: bold;
+    color: #ffbd2e;
+    font-size: 13px;
+    word-break: break-word;
+    margin-bottom: 2px;
+    text-align: center;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    white-space: normal; /* 确保文本可以正常换行 */
+}
+
+.hive-workflow-label {
+    font-size: 11px;
+    color: #aaa;
+    text-align: center;
+}
+
+.hive-load-workflow-btn {
+    background: #ffbd2e;
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s;
+    flex-shrink: 0;
+    width: auto;
+    margin-top: 2px;
+}
+
+.hive-load-workflow-btn:hover {
+    background: #ffc94d;
+}
+
+/* Emoji表情选择器 */
+.hive-emoji-picker {
+    background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+    border: 1px solid #444;
+    border-radius: 12px;
+    padding: 12px;
+    width: 320px; /* 增加宽度容纳40个表情 (24*10 + gap*9) ≈ 294px */
+    max-width: 320px; /* 固定宽度 */
+    height: auto; /* 让高度自适应内容 */
+    grid-template-columns: repeat(10, 1fr); /* 10列，每行10个表情 */
+    gap: 4px; /* 减少gap节省空间 */
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    animation: hive-emoji-show 0.15s ease-out;
+    position: absolute;
+    z-index: 2000;
+}
+
+.hive-emoji-item {
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.hive-emoji-item:hover {
+    background: rgba(255, 189, 46, 0.2);
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(255, 189, 46, 0.3);
+}
+
+.hive-emoji-item:active {
+    transform: scale(0.95);
+}
+
+/* Emoji选择器显示动画 */
+@keyframes hive-emoji-show {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* 消息进场动画 */
+.hive-message-enter {
+    animation: hive-message-slide-up 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+@keyframes hive-message-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 加载历史消息提示 */
+.hive-loading-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    color: #888;
+    font-size: 12px;
+    background: rgba(37, 37, 37, 0.8);
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.hive-loading-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #444;
+    border-top-color: #ffbd2e;
+    border-radius: 50%;
+    animation: hive-spin 0.8s linear infinite;
+}
+
+@keyframes hive-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

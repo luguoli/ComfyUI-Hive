@@ -1,0 +1,98 @@
+/* ================================================
+   HIVE TOAST STYLES - Notification System
+   ================================================ */
+
+/* Toast通知样式 */
+.hive-toast {
+    background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+    border: 1px solid #444;
+    border-radius: 25px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    overflow: hidden;
+    pointer-events: all;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transform: translateX(100%);
+    opacity: 0;
+    margin-bottom: 10px;
+}
+
+.hive-toast.hive-toast-show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.hive-toast-content {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    gap: 12px;
+    color: #fff;
+    font-family: sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.hive-toast-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+/* 不同类型的外观 */
+.hive-toast-success {
+    border-color: #4caf50;
+    background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+}
+.hive-toast-success .hive-toast-icon {
+    color: #4caf50;
+}
+
+.hive-toast-error {
+    border-color: #f44336;
+    background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+}
+.hive-toast-error .hive-toast-icon {
+    color: #f44336;
+}
+
+.hive-toast-warning {
+    border-color: #ff9800;
+    background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+}
+.hive-toast-warning .hive-toast-icon {
+    color: #ff9800;
+}
+
+.hive-toast-info {
+    border-color: #2196f3;
+    background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+}
+.hive-toast-info .hive-toast-icon {
+    color: #2196f3;
+}
+
+/* 进度条 */
+.hive-toast-progress {
+    height: 3px;
+    background: linear-gradient(90deg, transparent, rgba(255, 189, 46, 0.6), transparent);
+    animation: hive-toast-progress 3s linear forwards;
+}
+
+@keyframes hive-toast-progress {
+    0% {
+        width: 100%;
+        transform: translateX(-100%);
+    }
+    100% {
+        width: 100%;
+        transform: translateX(100%);
+    }
+}
+
+/* Hover效果 */
+.hive-toast:hover {
+    transform: translateX(-5px) scale(1.02);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+}
