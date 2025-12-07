@@ -95,7 +95,7 @@ ComfyUI-Hive 是一个专为 ComfyUI 用户打造的社区插件，让您能够�
 
 **方法1：通过ComfyUI管理器（推荐）**
 1. 在ComfyUI界面中打开ComfyUI管理器
-2. 搜索 "ComfyUI-Qwen-Image-Integrated-KSampler"
+2. 搜索 "ComfyUI-Hive"
 3. 点击安装
 
 **方法2：使用 Git**
