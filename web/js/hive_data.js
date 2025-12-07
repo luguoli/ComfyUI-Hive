@@ -607,6 +607,18 @@ export async function extractWorkflowFromImage(file) {
 
 // 初始化 Supabase
 export function initSupabase(url, key) {
+    // 检查是否已经存在相同配置的客户端实例
+    if (supabase && supabaseUrl === url && supabaseKey === key) {
+        console.log('🐝 Hive: Supabase already initialized with the same configuration, reusing existing instance');
+        return;
+    }
+    
+    // 如果配置不同，记录警告并创建新实例
+    if (supabase && (supabaseUrl !== url || supabaseKey !== key)) {
+        console.warn('🐝 Hive: Supabase configuration changed, creating new client instance');
+        console.warn('🐝 Hive: Old URL:', supabaseUrl, 'New URL:', url);
+    }
+    
     supabaseUrl = url;
     supabaseKey = key;
     supabase = window.supabase.createClient(url, key);

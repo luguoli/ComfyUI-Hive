@@ -352,31 +352,6 @@ app.registerExtension({
                 initSupabase(SUPABASE_URL, SUPABASE_KEY);
                 await loginGuest();
 
-                // 检查版本（每次打开都检查，但会记住用户选择"不再提醒"的版本）
-                try {
-                    const versionCheck = await checkPluginVersion(PLUGIN_VERSION);
-                    
-                        if (versionCheck.needUpdate) {
-                            // 检查用户是否已经选择"不再提醒"这个版本
-                            const dontRemindVersions = JSON.parse(localStorage.getItem('hive_dont_remind_versions') || '[]');
-                            const normalizedLatestVersion = normalizeVersion(versionCheck.latestVersion);
-                            const isDontRemind = dontRemindVersions.includes(normalizedLatestVersion);
-                            
-                            if (!isDontRemind) {
-                                if (versionCheck.isForce) {
-                                    // 强制更新（在showForceUpdateModal函数内部设置isForceUpdate）
-                                    await showForceUpdateModal(versionCheck.latestVersion, versionCheck.message);
-                                } else {
-                                    // 提示更新
-                                    showUpdateNotification(versionCheck.latestVersion, versionCheck.message);
-                                }
-                            }
-                        }
-                } catch (error) {
-                    console.error('🐝 Hive: Version check failed:', error);
-                    // 版本检查失败不影响使用
-                }
-
                 isInitialized = true;
 
                 // 如果需要强制更新，不允许继续初始化
@@ -423,6 +398,7 @@ app.registerExtension({
         window.currentMainTab = currentMainTab;
         window.currentChannel = currentChannel;
         window.reloadChannels = fetchChannelsWithLoading;
+        window.performVersionCheck = performVersionCheck;
 
         // 处理频道选择
         async function onChannelSelect(channelId, item) {
@@ -2347,6 +2323,41 @@ app.registerExtension({
             return normalized;
         }
 
+        // 版本检查函数（第一次打开侧边栏时调用）
+        let versionChecked = false; // 标记是否已经检查过版本
+        async function performVersionCheck() {
+            // 如果已经检查过版本，跳过
+            if (versionChecked) {
+                return;
+            }
+            
+            versionChecked = true;
+            
+            try {
+                const versionCheck = await checkPluginVersion(PLUGIN_VERSION);
+                
+                if (versionCheck.needUpdate) {
+                    // 检查用户是否已经选择"不再提醒"这个版本
+                    const dontRemindVersions = JSON.parse(localStorage.getItem('hive_dont_remind_versions') || '[]');
+                    const normalizedLatestVersion = normalizeVersion(versionCheck.latestVersion);
+                    const isDontRemind = dontRemindVersions.includes(normalizedLatestVersion);
+                    
+                    if (!isDontRemind) {
+                        if (versionCheck.isForce) {
+                            // 强制更新（在showForceUpdateModal函数内部设置isForceUpdate）
+                            await showForceUpdateModal(versionCheck.latestVersion, versionCheck.message);
+                        } else {
+                            // 提示更新
+                            showUpdateNotification(versionCheck.latestVersion, versionCheck.message);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('🐝 Hive: Version check failed:', error);
+                // 版本检查失败不影响使用
+            }
+        }
+
         // 创建侧边栏 DOM
         sidebar = document.createElement("div");
         sidebar.id = "hive-sidebar";
@@ -3802,9 +3813,20 @@ function insertButton() {
             showToast(getText('toast.versionUpdateRequired', 'Current version needs update, please download the latest version'), 'warning');
         }
 
-        // 如果刚刚打开且未初始化，启动初始化
+        // 如果刚刚打开且未初始化，先检查版本，然后启动初始化
         if (!wasOpen && isNowOpen && !isInitialized && window.initializeHive) {
             try {
+                // 第一次打开侧边栏时检查版本
+                if (window.performVersionCheck) {
+                    await window.performVersionCheck();
+                }
+                
+                // 如果需要强制更新，阻止初始化
+                if (isForceUpdate) {
+                    return;
+                }
+                
+                // 执行初始化
                 await window.initializeHive();
             } catch (error) {
                 console.error('🐝 Hive: Initialization failed:', error);
