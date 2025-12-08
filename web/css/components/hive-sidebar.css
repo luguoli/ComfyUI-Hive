@@ -19,6 +19,10 @@
     color: #fff;
     font-family: sans-serif;
     box-sizing: border-box;
+    /* 字体大小缩放因子，默认1（小），通过CSS变量控制 */
+    --hive-font-scale: var(--hive-font-scale-value, 1);
+    /* 使用zoom属性统一缩放整个侧边栏，包括字体和布局，保持相对大小关系 */
+    zoom: var(--hive-font-scale);
     /* 强制允许选中文字 */
     -webkit-user-select: text !important;
     -moz-user-select: text !important;
@@ -27,6 +31,10 @@
     /* 把鼠标指针改回默认的"文本输入"或"自动"样式 */
     cursor: auto !important;
 }
+
+/* 统一缩放侧边栏内所有元素的字体大小 */
+/* 使用CSS的zoom属性统一缩放整个侧边栏，包括字体和布局，保持相对大小关系 */
+/* zoom属性会按比例缩放所有内容，包括字体、间距、尺寸等，完美保持相对大小关系 */
 #hive-sidebar.open { right: 0; }
 
 #hive-sidebar * {

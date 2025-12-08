@@ -189,18 +189,18 @@ app.registerExtension({
                     background-color: var(--comfy-menu-bg);
                     border: 1px solid var(--border-color);
                     border-radius: 4px;
-                    padding: 4px 0;
+                    padding: 2px 0;
                     z-index: 10002;
                     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-                    min-width: 200px;
+                    min-width: 150px;
                 `;
                 
                 const menuItem = document.createElement('div');
                 menuItem.style.cssText = `
-                    padding: 8px 16px;
+                    padding: 6px 12px;
                     color: var(--input-text);
                     cursor: pointer;
-                    font-size: 14px;
+                    font-size: 12px;
                 `;
                 menuItem.textContent = `🐝 ${reversePromptText}`;
                 menuItem.onmouseenter = () => {
@@ -284,18 +284,18 @@ app.registerExtension({
                     background-color: var(--comfy-menu-bg);
                     border: 1px solid var(--border-color);
                     border-radius: 4px;
-                    padding: 4px 0;
+                    padding: 2px 0;
                     z-index: 10001;
                     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-                    min-width: 200px;
+                    min-width: 150px;
                 `;
                 
                 const menuItem = document.createElement('div');
                 menuItem.style.cssText = `
-                    padding: 8px 16px;
+                    padding: 6px 12px;
                     color: var(--input-text);
                     cursor: pointer;
-                    font-size: 14px;
+                    font-size: 12px;
                 `;
                 menuItem.textContent = `🐝 ${reversePromptText}`;
                 menuItem.onmouseenter = () => {
@@ -366,18 +366,66 @@ app.registerExtension({
             const modelDownloaderModal = document.getElementById('hive-model-downloader-guide-modal');
             const feedbackModal = document.getElementById('hive-feedback-modal');
             const llmConfigModal = document.getElementById('hive-llm-config-modal');
+            const randomPromptModal = document.getElementById('hive-random-prompt-modal');
+            const expandPromptModal = document.getElementById('hive-expand-prompt-modal');
+            const reversePromptModal = document.getElementById('hive-reverse-prompt-modal');
+            const aiChatModal = document.getElementById('hive-ai-chat-modal');
+            const translateModal = document.getElementById('hive-translate-modal');
+            const configPromptModal = document.getElementById('hive-config-prompt-modal');
             
             const isInPlugin = (sidebarEl && sidebarEl.contains(e.target)) ||
                               (settingsModal && settingsModal.contains(e.target)) ||
                               (nodeInstallerModal && nodeInstallerModal.contains(e.target)) ||
                               (modelDownloaderModal && modelDownloaderModal.contains(e.target)) ||
                               (feedbackModal && feedbackModal.contains(e.target)) ||
-                              (llmConfigModal && llmConfigModal.contains(e.target));
+                              (llmConfigModal && llmConfigModal.contains(e.target)) ||
+                              (randomPromptModal && randomPromptModal.contains(e.target)) ||
+                              (expandPromptModal && expandPromptModal.contains(e.target)) ||
+                              (reversePromptModal && reversePromptModal.contains(e.target)) ||
+                              (aiChatModal && aiChatModal.contains(e.target)) ||
+                              (translateModal && translateModal.contains(e.target)) ||
+                              (configPromptModal && configPromptModal.contains(e.target));
             
             if (isInPlugin) {
                 // 允许文字选择，不阻止
                 // 阻止事件传播，防止ComfyUI阻止选择
                 e.stopImmediatePropagation();
+            }
+        }, true); // capture阶段
+
+        // 处理复制事件，确保复制功能正常
+        document.addEventListener('copy', function(e) {
+            const sidebarEl = document.getElementById('hive-sidebar');
+            const settingsModal = document.getElementById('hive-settings-modal');
+            const nodeInstallerModal = document.getElementById('hive-node-installer-guide-modal');
+            const modelDownloaderModal = document.getElementById('hive-model-downloader-guide-modal');
+            const feedbackModal = document.getElementById('hive-feedback-modal');
+            const llmConfigModal = document.getElementById('hive-llm-config-modal');
+            const randomPromptModal = document.getElementById('hive-random-prompt-modal');
+            const expandPromptModal = document.getElementById('hive-expand-prompt-modal');
+            const reversePromptModal = document.getElementById('hive-reverse-prompt-modal');
+            const aiChatModal = document.getElementById('hive-ai-chat-modal');
+            const translateModal = document.getElementById('hive-translate-modal');
+            const configPromptModal = document.getElementById('hive-config-prompt-modal');
+            
+            const isInPlugin = (sidebarEl && sidebarEl.contains(e.target)) ||
+                              (settingsModal && settingsModal.contains(e.target)) ||
+                              (nodeInstallerModal && nodeInstallerModal.contains(e.target)) ||
+                              (modelDownloaderModal && modelDownloaderModal.contains(e.target)) ||
+                              (feedbackModal && feedbackModal.contains(e.target)) ||
+                              (llmConfigModal && llmConfigModal.contains(e.target)) ||
+                              (randomPromptModal && randomPromptModal.contains(e.target)) ||
+                              (expandPromptModal && expandPromptModal.contains(e.target)) ||
+                              (reversePromptModal && reversePromptModal.contains(e.target)) ||
+                              (aiChatModal && aiChatModal.contains(e.target)) ||
+                              (translateModal && translateModal.contains(e.target)) ||
+                              (configPromptModal && configPromptModal.contains(e.target));
+            
+            if (isInPlugin) {
+                // 允许复制，不阻止默认行为
+                // 阻止事件传播，防止ComfyUI阻止复制
+                e.stopImmediatePropagation();
+                // 不调用preventDefault，允许默认复制行为
             }
         }, true); // capture阶段
 
@@ -1806,6 +1854,36 @@ app.registerExtension({
             return sanitized;
         }
 
+        // 应用字体大小设置
+        const applyFontSize = (size) => {
+            const sidebar = document.getElementById('hive-sidebar');
+            if (!sidebar) return;
+            
+            let scale;
+            switch(size) {
+                case 'small':
+                    scale = 1; // 默认大小，不缩放
+                    break;
+                case 'medium':
+                    scale = 1.15; // 增大15%
+                    break;
+                case 'large':
+                    scale = 1.3; // 增大30%
+                    break;
+                default:
+                    scale = 1;
+            }
+            
+            sidebar.style.setProperty('--hive-font-scale-value', scale);
+        };
+
+        // 页面加载时应用保存的字体大小设置
+        const savedFontSize = localStorage.getItem('hive_font_size') || 'small';
+        // 使用 setTimeout 确保侧边栏已创建
+        setTimeout(() => {
+            applyFontSize(savedFontSize);
+        }, 100);
+
         // 设置模态框
         const showSettingsModal = () => {
             if (document.getElementById('hive-settings-modal')) return;
@@ -1855,6 +1933,23 @@ app.registerExtension({
                                             <option value="zh" ${currentLang === 'zh' ? 'selected' : ''}>${getText('settings.chinese', 'Chinese')}</option>
                                             <option value="en" ${currentLang === 'en' ? 'selected' : ''}>English</option>
                                         </select>
+                                    </div>
+                                    <div class="hive-settings-form-group">
+                                        <label>${tt('settings.fontSize')}</label>
+                                        <div class="hive-font-size-radio-group">
+                                            <label class="hive-font-size-radio-label">
+                                                <input type="radio" name="font-size" value="small" class="font-size-radio" ${(localStorage.getItem('hive_font_size') || 'small') === 'small' ? 'checked' : ''}>
+                                                <span>${tt('settings.fontSizeSmall')}</span>
+                                            </label>
+                                            <label class="hive-font-size-radio-label">
+                                                <input type="radio" name="font-size" value="medium" class="font-size-radio" ${localStorage.getItem('hive_font_size') === 'medium' ? 'checked' : ''}>
+                                                <span>${tt('settings.fontSizeMedium')}</span>
+                                            </label>
+                                            <label class="hive-font-size-radio-label">
+                                                <input type="radio" name="font-size" value="large" class="font-size-radio" ${localStorage.getItem('hive_font_size') === 'large' ? 'checked' : ''}>
+                                                <span>${tt('settings.fontSizeLarge')}</span>
+                                            </label>
+                                        </div>
                                     </div>
                                     <div class="hive-settings-auto-translate-row">
                                         <span class="hive-settings-auto-translate-title">${tt('settings.autoTranslate')}</span>
@@ -2067,6 +2162,19 @@ app.registerExtension({
                     : 'Please refresh your browser to apply the changes (请刷新浏览器以应用更改)';
                 showToast(langUpdatedText + '<br>' + refreshText, 'success');
             };
+
+            // 字体大小选择（单选按钮）
+            const fontSizeRadios = modal.querySelectorAll('.font-size-radio');
+            fontSizeRadios.forEach(radio => {
+                radio.onchange = () => {
+                    if (radio.checked) {
+                        const selectedSize = radio.value;
+                        localStorage.setItem('hive_font_size', selectedSize);
+                        applyFontSize(selectedSize);
+                        showToast(getText('toast.settingsSaved', 'Settings saved'), 'success');
+                    }
+                };
+            });
 
             // 自动翻译开关
             const autoTranslateToggle = modal.querySelector('.hive-auto-translate-toggle');
@@ -6943,11 +7051,13 @@ Return only the expanded prompt, without any explanations, prefixes, or suffixes
                     left: 0;
                     width: 100%;
                     height: 100%;
-                    background-color: rgba(0, 0, 0, 0.7);
+                    background-color: rgba(0, 0, 0, 0.8);
+                    backdrop-filter: blur(8px);
+                    -webkit-backdrop-filter: blur(8px);
                     display: flex;
                     justify-content: center;
                     align-items: center;
-                    z-index: 10000;
+                    z-index: 100003;
                 ">
                     <div class="hive-confirm-content" style="
                         background-color: var(--comfy-menu-bg);
@@ -7986,18 +8096,18 @@ Return only the expanded prompt, without any explanations, prefixes, or suffixes
                                 background-color: var(--comfy-menu-bg);
                                 border: 1px solid var(--border-color);
                                 border-radius: 4px;
-                                padding: 4px 0;
+                                padding: 2px 0;
                                 z-index: 10001;
                                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-                                min-width: 200px;
+                                min-width: 150px;
                             `;
                             
                             const menuItem = document.createElement('div');
                             menuItem.style.cssText = `
-                                padding: 8px 16px;
+                                padding: 6px 12px;
                                 color: var(--input-text);
                                 cursor: pointer;
-                                font-size: 14px;
+                                font-size: 12px;
                             `;
                             menuItem.textContent = `🐝 ${reversePromptText}`;
                             menuItem.onmouseenter = () => {

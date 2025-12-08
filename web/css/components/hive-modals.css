@@ -46,6 +46,73 @@
     cursor: auto !important;
 }
 
+/* LLM Config Modal - 配置大模型弹窗，层级需要比设置界面弹窗高 */
+#hive-llm-config-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100003;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* 强制允许选中文字 */
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    /* 把鼠标指针改回默认的"文本输入"或"自动"样式 */
+    cursor: auto !important;
+}
+
+/* 右键菜单功能弹窗 - 允许复制文字 */
+#hive-random-prompt-modal,
+#hive-expand-prompt-modal,
+#hive-reverse-prompt-modal,
+#hive-ai-chat-modal,
+#hive-translate-modal,
+#hive-config-prompt-modal {
+    /* 强制允许选中文字 */
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    /* 把鼠标指针改回默认的"文本输入"或"自动"样式 */
+    cursor: auto !important;
+}
+
+/* 右键菜单功能弹窗内容区域 - 允许复制文字 */
+#hive-random-prompt-modal *,
+#hive-expand-prompt-modal *,
+#hive-reverse-prompt-modal *,
+#hive-ai-chat-modal *,
+#hive-translate-modal *,
+#hive-config-prompt-modal * {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    cursor: auto !important;
+}
+
+/* 按钮等交互元素除外 */
+#hive-random-prompt-modal button,
+#hive-expand-prompt-modal button,
+#hive-reverse-prompt-modal button,
+#hive-ai-chat-modal button,
+#hive-translate-modal button,
+#hive-config-prompt-modal button,
+#hive-random-prompt-modal input,
+#hive-expand-prompt-modal input,
+#hive-reverse-prompt-modal input,
+#hive-ai-chat-modal input,
+#hive-translate-modal input,
+#hive-config-prompt-modal input {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    cursor: pointer !important;
+}
+
 .hive-settings-overlay {
     position: fixed;
     inset: 0;
@@ -359,6 +426,59 @@
     color: #fff;
 }
 
+/* 字体大小单选按钮组 */
+.hive-font-size-radio-group {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.hive-font-size-radio-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+    min-width: 80px;
+    justify-content: center;
+    user-select: none;
+}
+
+.hive-font-size-radio-label:hover {
+    background: #333;
+    border-color: #555;
+}
+
+.hive-font-size-radio-label input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    margin: 0;
+    accent-color: #ffbd2e;
+}
+
+.hive-font-size-radio-label input[type="radio"]:checked + span {
+    color: #ffbd2e;
+    font-weight: 600;
+}
+
+.hive-font-size-radio-label:has(input[type="radio"]:checked) {
+    background: rgba(255, 189, 46, 0.1);
+    border-color: #ffbd2e;
+    box-shadow: 0 0 0 2px rgba(255, 189, 46, 0.2);
+}
+
+.hive-font-size-radio-label span {
+    color: #ddd;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
 .hive-settings-footer {
     padding: 16px 24px;
     border-top: 1px solid #333;
@@ -550,6 +670,32 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    /* 默认不允许选择，但子元素可以覆盖 */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* 灯箱信息面板区域 - 允许复制文字 */
+#hive-lightbox .hive-lightbox-info-panel,
+#hive-lightbox .hive-lightbox-info-panel * {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    cursor: text !important;
+}
+
+/* 按钮等交互元素除外 */
+#hive-lightbox .hive-lightbox-info-panel button,
+#hive-lightbox .hive-lightbox-info-panel input,
+#hive-lightbox .hive-lightbox-info-panel textarea {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    cursor: pointer !important;
 }
 
 /* 这些样式会被容器内的样式覆盖，保留作为备用 */
@@ -621,6 +767,32 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    /* 默认不允许选择，但子元素可以覆盖 */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* 视频模态框信息面板区域 - 允许复制文字 */
+#hive-video-modal .hive-lightbox-info-panel,
+#hive-video-modal .hive-lightbox-info-panel * {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    cursor: text !important;
+}
+
+/* 按钮等交互元素除外 */
+#hive-video-modal .hive-lightbox-info-panel button,
+#hive-video-modal .hive-lightbox-info-panel input,
+#hive-video-modal .hive-lightbox-info-panel textarea {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    cursor: pointer !important;
 }
 
 #hive-video-modal .hive-lightbox-content-container {
@@ -635,6 +807,12 @@
     color: #eee;
     font-size: 13px;
     line-height: 1.6;
+    /* 允许文字选择 */
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    cursor: text;
 }
 
 .hive-lightbox-info-item {
@@ -660,6 +838,11 @@
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    /* 允许文字选择 */
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
 }
 
 .hive-lightbox-info-panel-portrait .hive-lightbox-info-label {
@@ -684,6 +867,11 @@
     background: rgba(255, 255, 255, 0.05);
     border-radius: 4px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    /* 允许文字选择 */
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
 }
 
 .hive-lightbox-caption {

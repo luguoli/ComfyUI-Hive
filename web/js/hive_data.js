@@ -695,7 +695,7 @@ export async function loginGuest() {
         const stored = localStorage.getItem('hive_guest_user');
         if (stored) {
             currentUser = JSON.parse(stored);
-            console.log('🐝 Hive: Loaded user from localStorage:', currentUser);
+            // console.log('🐝 Hive: Loaded user from localStorage:', currentUser);
             return currentUser;
         }
 
@@ -753,7 +753,7 @@ export async function fetchChannels() {
 
         if (error) throw error;
 
-        console.log('🐝 Hive: Fetched channels:', data);
+        // console.log('🐝 Hive: Fetched channels:', data);
         return data || [];
     } catch (error) {
         console.error('🐝 Hive: Failed to fetch channels:', error);

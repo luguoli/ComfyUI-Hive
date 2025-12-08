@@ -739,12 +739,12 @@ function createMessageElement(msg) {
         let workflowData = msg.metadata && msg.metadata.workflow_data;
         
         // 调试：打印完整的metadata信息
-        console.log('🐝 Hive: Checking workflow data for image:', {
-            hasMetadata: !!msg.metadata,
-            metadata: msg.metadata,
-            workflowData: workflowData,
-            workflowDataType: typeof workflowData
-        });
+        // console.log('🐝 Hive: Checking workflow data for image:', {
+        //     hasMetadata: !!msg.metadata,
+        //     metadata: msg.metadata,
+        //     workflowData: workflowData,
+        //     workflowDataType: typeof workflowData
+        // });
         
         // 检查是否有工作流数据（支持对象、JSON字符串或URL）
         if (workflowData) {
@@ -753,10 +753,10 @@ function createMessageElement(msg) {
             
             // 如果是URL，或者如果是JSON字符串/对象，都显示加载按钮
             // 不需要在这里解析，让 loadWorkflowToComfyUI 函数处理
-            console.log('🐝 Hive: Found workflow data for image message:', {
-                isUrl: isUrl,
-                type: typeof workflowData
-            });
+            // console.log('🐝 Hive: Found workflow data for image message:', {
+            //     isUrl: isUrl,
+            //     type: typeof workflowData
+            // });
             
             const currentLang = getCurrentLanguage();
             const isZh = currentLang === 'zh';
@@ -780,12 +780,12 @@ function createMessageElement(msg) {
             
             imageContainer.appendChild(workflowFooter);
         } else {
-            console.log('🐝 Hive: No valid workflow data found for image message:', {
-                hasMetadata: !!msg.metadata,
-                hasWorkflowData: !!msg.metadata?.workflow_data,
-                workflowDataType: typeof msg.metadata?.workflow_data,
-                workflowData: workflowData
-            });
+            // console.log('🐝 Hive: No valid workflow data found for image message:', {
+            //     hasMetadata: !!msg.metadata,
+            //     hasWorkflowData: !!msg.metadata?.workflow_data,
+            //     workflowDataType: typeof msg.metadata?.workflow_data,
+            //     workflowData: workflowData
+            // });
         }
 
         bubble.appendChild(imageContainer);
@@ -1058,7 +1058,7 @@ function updateChannelOnlineCount(channelId, count) {
     
     // 更新频道列表中的显示
     const channelItem = document.querySelector(`.channel-item[data-channel-id="${channelId}"]`);
-    console.log(`🐝 updateChannelOnlineCount: channelItem found:`, !!channelItem);
+    // console.log(`🐝 updateChannelOnlineCount: channelItem found:`, !!channelItem);
     
     if (channelItem) {
         const channelNameEl = channelItem.querySelector('.channel-name');
@@ -1083,10 +1083,10 @@ function updateChannelOnlineCount(channelId, count) {
             countEl.innerHTML = `&nbsp;&nbsp;${onlineCountText}`;
             channelNameEl.appendChild(countEl);
         } else {
-            console.warn(`🐝 updateChannelOnlineCount: channelNameEl not found for channel ${channelId}`);
+            // console.warn(`🐝 updateChannelOnlineCount: channelNameEl not found for channel ${channelId}`);
         }
     } else {
-        console.warn(`🐝 updateChannelOnlineCount: channelItem not found for channel ${channelId}`);
+        // console.warn(`🐝 updateChannelOnlineCount: channelItem not found for channel ${channelId}`);
     }
 }
 
@@ -1161,7 +1161,7 @@ function showLightbox(src, promptData, itemData = null) {
         // 获取图片尺寸（在清空前）
         const imgWidth = savedImg.naturalWidth || savedImg.width || 800;
         const imgHeight = savedImg.naturalHeight || savedImg.height || 600;
-        const isPortrait = imgHeight > imgWidth; // 纵向图片
+        const isPortrait = imgWidth <= imgHeight; // 纵向图片（宽度等于高度时也显示为纵向）
         
         // 收集要显示的信息（在创建元素之前）
         const infoItems = [];
@@ -1359,9 +1359,19 @@ function showLightbox(src, promptData, itemData = null) {
             infoPanel.style.maxHeight = isPortrait ? '90vh' : 'auto';
             infoPanel.style.overflowY = 'auto';
             infoPanel.style.overflowX = 'hidden';
+            // 初始隐藏信息面板，等待图片尺寸确定后再显示
+            // 使用 visibility: hidden 而不是 opacity: 0，这样元素仍然占据空间，避免布局闪烁
+            infoPanel.style.visibility = 'hidden';
+            infoPanel.style.transition = 'opacity 0.3s ease-in, visibility 0s linear 0.3s';
+            // 横向布局时，预先设置宽度以避免布局闪烁
             if (!isPortrait) {
                 // 横向图片：key和value在同一行
                 infoPanel.classList.add('hive-lightbox-info-panel-landscape');
+                // 预先设置宽度为图片容器的计算宽度，避免布局变化
+                const preCalculatedWidth = Math.min(imgWidth, availableWidth);
+                if (preCalculatedWidth > 0) {
+                    infoPanel.style.width = preCalculatedWidth + 'px';
+                }
             }
             
             infoItems.forEach(item => {
@@ -1412,6 +1422,26 @@ function showLightbox(src, promptData, itemData = null) {
         
         lightbox.appendChild(contentContainer);
         
+        // 等待图片尺寸确定后再显示信息面板
+        if (infoPanel) {
+            // 使用 requestAnimationFrame 确保图片尺寸已应用
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    // 横向布局时，精确调整信息面板宽度与图片容器宽度一致
+                    if (!isPortrait) {
+                        const imageContainerWidth = imageContainer.offsetWidth;
+                        if (imageContainerWidth > 0) {
+                            infoPanel.style.width = imageContainerWidth + 'px';
+                        }
+                    }
+                    // 显示信息面板：先设置 visibility，然后设置 opacity
+                    infoPanel.style.transition = 'opacity 0.3s ease-in';
+                    infoPanel.style.visibility = 'visible';
+                    infoPanel.style.opacity = '1';
+                });
+            });
+        }
+        
         // 阻止图片和信息面板的点击事件冒泡
         const imgInContainer = imageContainer.querySelector('img');
         if (imgInContainer) {
@@ -1423,6 +1453,37 @@ function showLightbox(src, promptData, itemData = null) {
             infoPanel.onclick = (e) => {
                 e.stopPropagation();
             };
+        }
+        
+        // 为信息面板添加文字选择支持，阻止事件冒泡到Canvas
+        if (infoPanel) {
+            const setupInfoPanelCopySupport = (panelEl) => {
+                if (!panelEl) return;
+                
+                // 阻止事件冒泡到Canvas
+                panelEl.addEventListener('pointerdown', function(e) {
+                    e.stopPropagation();
+                }, true);
+                panelEl.addEventListener('mousedown', function(e) {
+                    e.stopPropagation();
+                }, true);
+                panelEl.addEventListener('wheel', function(e) {
+                    e.stopPropagation();
+                }, true);
+                panelEl.addEventListener('contextmenu', function(e) {
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                }, true);
+                panelEl.addEventListener('selectstart', function(e) {
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                }, true);
+                panelEl.addEventListener('copy', function(e) {
+                    e.stopPropagation();
+                }, true);
+            };
+            
+            setupInfoPanelCopySupport(infoPanel);
         }
     };
     
@@ -2008,7 +2069,7 @@ function showVideoPlayer(item, itemData = null) {
         // 获取视频尺寸（在清空前）
         const videoWidth = savedVideo.videoWidth || savedVideo.width || 16;
         const videoHeight = savedVideo.videoHeight || savedVideo.height || 9;
-        const isPortrait = videoHeight > videoWidth; // 纵向视频
+        const isPortrait = videoWidth <= videoHeight; // 纵向视频（宽度等于高度时也显示为纵向）
         
         // 获取当前语言
         const currentLang = getCurrentLanguage();
@@ -2180,9 +2241,19 @@ function showVideoPlayer(item, itemData = null) {
             infoPanel.style.maxHeight = isPortrait ? '90vh' : 'auto';
             infoPanel.style.overflowY = 'auto';
             infoPanel.style.overflowX = 'hidden';
+            // 初始隐藏信息面板，等待视频尺寸确定后再显示
+            // 使用 visibility: hidden 而不是 opacity: 0，这样元素仍然占据空间，避免布局闪烁
+            infoPanel.style.visibility = 'hidden';
+            infoPanel.style.transition = 'opacity 0.3s ease-in, visibility 0s linear 0.3s';
+            // 横向布局时，预先设置宽度以避免布局闪烁
             if (!isPortrait) {
                 // 横向视频：key和value在同一行
                 infoPanel.classList.add('hive-lightbox-info-panel-landscape');
+                // 预先设置宽度为视频容器的计算宽度，避免布局变化
+                const preCalculatedWidth = Math.min(videoWidth, availableWidth);
+                if (preCalculatedWidth > 0) {
+                    infoPanel.style.width = preCalculatedWidth + 'px';
+                }
             }
             
             infoItems.forEach(item => {
@@ -2233,6 +2304,26 @@ function showVideoPlayer(item, itemData = null) {
         
         modal.appendChild(contentContainer);
         
+        // 等待视频尺寸确定后再显示信息面板
+        if (infoPanel) {
+            // 使用 requestAnimationFrame 确保视频尺寸已应用
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    // 横向布局时，精确调整信息面板宽度与视频容器宽度一致
+                    if (!isPortrait) {
+                        const videoContainerWidth = videoContainer.offsetWidth;
+                        if (videoContainerWidth > 0) {
+                            infoPanel.style.width = videoContainerWidth + 'px';
+                        }
+                    }
+                    // 显示信息面板：先设置 visibility，然后设置 opacity
+                    infoPanel.style.transition = 'opacity 0.3s ease-in';
+                    infoPanel.style.visibility = 'visible';
+                    infoPanel.style.opacity = '1';
+                });
+            });
+        }
+        
         // 阻止视频和信息面板的点击事件冒泡
         const videoInContainer = videoContainer.querySelector('video');
         if (videoInContainer) {
@@ -2244,6 +2335,37 @@ function showVideoPlayer(item, itemData = null) {
             infoPanel.onclick = (e) => {
                 e.stopPropagation();
             };
+        }
+        
+        // 为信息面板添加文字选择支持，阻止事件冒泡到Canvas
+        if (infoPanel) {
+            const setupInfoPanelCopySupport = (panelEl) => {
+                if (!panelEl) return;
+                
+                // 阻止事件冒泡到Canvas
+                panelEl.addEventListener('pointerdown', function(e) {
+                    e.stopPropagation();
+                }, true);
+                panelEl.addEventListener('mousedown', function(e) {
+                    e.stopPropagation();
+                }, true);
+                panelEl.addEventListener('wheel', function(e) {
+                    e.stopPropagation();
+                }, true);
+                panelEl.addEventListener('contextmenu', function(e) {
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                }, true);
+                panelEl.addEventListener('selectstart', function(e) {
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                }, true);
+                panelEl.addEventListener('copy', function(e) {
+                    e.stopPropagation();
+                }, true);
+            };
+            
+            setupInfoPanelCopySupport(infoPanel);
         }
     };
     
