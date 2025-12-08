@@ -734,13 +734,21 @@
     top: 0;
     left: 0;
     right: 0;
-    bottom: 0;
     background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+    /* 高度由 JavaScript 动态设置，确保覆盖整个滚动内容区域 */
+}
+
+/* Spinner 容器，独立定位在 body 中，使用 fixed 定位 */
+.hive-inspiration-loading-spinner-container {
+    position: fixed;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
-    backdrop-filter: blur(2px);
+    z-index: 10001;
+    pointer-events: none;
+    /* 位置由 JavaScript 动态设置，在可见区域居中 */
 }
 
 .hive-inspiration-loading-spinner {
@@ -750,6 +758,7 @@
     border-top-color: #ffbd2e;
     border-radius: 50%;
     animation: hive-inspiration-spin 0.8s linear infinite;
+    flex-shrink: 0;
 }
 
 @keyframes hive-inspiration-spin {

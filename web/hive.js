@@ -3692,18 +3692,108 @@ if (sendBtn && inputTextarea) {
             const view = document.getElementById('hive-view-inspiration');
             if (!view) return;
             
+            // 使用唯一 ID 避免冲突
+            const spinnerContainerId = 'hive-inspiration-loading-spinner-container';
             let loadingOverlay = view.querySelector('.hive-inspiration-loading-overlay');
+            let spinnerContainer = document.getElementById(spinnerContainerId);
+            
             if (show) {
+                // 创建蒙版 overlay，覆盖整个滚动内容
                 if (!loadingOverlay) {
                     loadingOverlay = document.createElement('div');
                     loadingOverlay.className = 'hive-inspiration-loading-overlay';
-                    loadingOverlay.innerHTML = '<div class="hive-inspiration-loading-spinner"></div>';
                     view.appendChild(loadingOverlay);
                 }
-                loadingOverlay.style.display = 'flex';
+                
+                // 创建独立的 spinner 容器，附加到 body，使用 fixed 定位避免 zoom 影响
+                if (!spinnerContainer) {
+                    spinnerContainer = document.createElement('div');
+                    spinnerContainer.id = spinnerContainerId;
+                    spinnerContainer.className = 'hive-inspiration-loading-spinner-container';
+                    spinnerContainer.innerHTML = '<div class="hive-inspiration-loading-spinner"></div>';
+                    document.body.appendChild(spinnerContainer);
+                }
+                
+                // 更新蒙版尺寸
+                const updateOverlaySize = () => {
+                    loadingOverlay.style.position = 'absolute';
+                    loadingOverlay.style.top = '0';
+                    loadingOverlay.style.left = '0';
+                    loadingOverlay.style.right = '0';
+                    loadingOverlay.style.height = Math.max(view.scrollHeight, view.clientHeight) + 'px';
+                    loadingOverlay.style.width = '100%';
+                    loadingOverlay.style.display = 'block';
+                };
+                
+                // 更新 spinner 容器位置，使其在可见区域居中
+                const updateSpinnerPosition = () => {
+                    if (!spinnerContainer) return;
+                    const rect = view.getBoundingClientRect();
+                    // 使用 fixed 定位，直接相对于视口，不受 zoom 影响
+                    spinnerContainer.style.position = 'fixed';
+                    spinnerContainer.style.top = (rect.top + rect.height / 2) + 'px';
+                    spinnerContainer.style.left = (rect.left + rect.width / 2) + 'px';
+                    spinnerContainer.style.transform = 'translate(-50%, -50%)';
+                    spinnerContainer.style.display = 'flex';
+                    spinnerContainer.style.visibility = 'visible';
+                    spinnerContainer.style.opacity = '1';
+                };
+                
+                updateOverlaySize();
+                updateSpinnerPosition();
+                
+                // 监听变化
+                const handleUpdate = () => {
+                    updateOverlaySize();
+                    updateSpinnerPosition();
+                };
+                
+                const handleResize = handleUpdate;
+                const handleScroll = handleUpdate;
+                
+                // 使用 MutationObserver 监听内容变化
+                if (!loadingOverlay._observer) {
+                    loadingOverlay._observer = new MutationObserver(handleUpdate);
+                    loadingOverlay._observer.observe(view, {
+                        childList: true,
+                        subtree: true,
+                        attributes: true,
+                        attributeFilter: ['style', 'class']
+                    });
+                }
+                
+                // 存储事件处理器
+                if (!loadingOverlay._resizeHandler) {
+                    loadingOverlay._resizeHandler = handleResize;
+                    loadingOverlay._scrollHandler = handleScroll;
+                    window.addEventListener('resize', handleResize);
+                    view.addEventListener('scroll', handleScroll);
+                }
             } else {
+                // 隐藏蒙版
                 if (loadingOverlay) {
                     loadingOverlay.style.display = 'none';
+                    if (loadingOverlay._resizeHandler) {
+                        window.removeEventListener('resize', loadingOverlay._resizeHandler);
+                        view.removeEventListener('scroll', loadingOverlay._scrollHandler);
+                        delete loadingOverlay._resizeHandler;
+                        delete loadingOverlay._scrollHandler;
+                    }
+                    if (loadingOverlay._observer) {
+                        loadingOverlay._observer.disconnect();
+                        delete loadingOverlay._observer;
+                    }
+                }
+                // 隐藏并移除 spinner 容器（完全清理，避免影响其他功能）
+                if (spinnerContainer) {
+                    spinnerContainer.style.display = 'none';
+                    spinnerContainer.style.visibility = 'hidden';
+                    // 延迟移除，确保动画完成
+                    setTimeout(() => {
+                        if (spinnerContainer && spinnerContainer.parentNode) {
+                            spinnerContainer.parentNode.removeChild(spinnerContainer);
+                        }
+                    }, 300);
                 }
             }
         }
