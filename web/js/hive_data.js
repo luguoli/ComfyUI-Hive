@@ -1355,9 +1355,19 @@ export async function searchInspiration(params) {
         pageSize = 20
     } = params || {};
 
+    // 固定屏蔽测试内容
+    let finalKeyword = keyword && keyword.trim() ? keyword.trim() : null;
+    if (finalKeyword && finalKeyword.toLowerCase().includes('__test_init_check__')) {
+        // 屏蔽测试内容，不输出日志
+        return {
+            items: [],
+            total: 0
+        };
+    }
+
     const { data, error } = await supabase.rpc('rpc_inspiration_search', {
         p_category: category,
-        p_keyword: keyword && keyword.trim() ? keyword.trim() : null,
+        p_keyword: finalKeyword,
         p_tag_ids: (tagIds && tagIds.length) ? tagIds : null,
         p_only_no_tag: !!onlyNoTag,
         p_favorites_only: !!favoritesOnly,

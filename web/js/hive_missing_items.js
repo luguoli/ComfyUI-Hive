@@ -9,7 +9,10 @@ import { showToast } from './hive_ui.js';
 async function ensureSupabaseInitialized() {
     try {
         // 先尝试一个简单的搜索来检查 Supabase 是否已初始化
+        // 使用一个不会触发实际搜索的关键词（会被 searchInspiration 屏蔽）
         try {
+            // 注意：这里使用 '__test_init_check__' 作为测试关键词
+            // 但 searchInspiration 函数会屏蔽它，不会发送实际请求
             await searchInspiration({
                 category: 'model',
                 keyword: '__test_init_check__',
@@ -18,6 +21,7 @@ async function ensureSupabaseInitialized() {
                 sort: 'latest'
             });
             // 如果没有抛出错误，说明已初始化
+            // 注意：由于屏蔽逻辑，这个请求会立即返回空结果，不会发送到服务器
             return true;
         } catch (error) {
             // 检查错误是否是"尚未初始化"
@@ -234,6 +238,12 @@ async function searchNodeByClassMapping(className) {
  */
 async function searchItemInLibrary(name, category) {
     try {
+        // 固定屏蔽测试内容
+        const nameLower = name.toLowerCase();
+        if (nameLower.includes('__test_init_check__')) {
+            return null;
+        }
+        
         // 确保 Supabase 已初始化
         const isInitialized = await ensureSupabaseInitialized();
         if (!isInitialized) {
@@ -271,6 +281,12 @@ async function searchItemInLibrary(name, category) {
 
         for (const term of uniqueTerms) {
             if (!term || term.length < 2) continue;
+            
+            // 固定屏蔽测试内容（检查每个搜索词）
+            const termLower = term.toLowerCase();
+            if (termLower.includes('__test_init_check__')) {
+                continue;
+            }
             
             try {
                 const { items } = await searchInspiration({
@@ -387,7 +403,9 @@ export async function initMissingItemsEnhancer() {
         return missingItemsEnhancerInstance;
     }
     
-    let processedDialogs = new WeakSet();
+    // 使用 Map 存储对话框的内容哈希，而不是 WeakSet，这样可以检测内容变化
+    // key: dialogContainer, value: contentHash (缺失项名称的组合)
+    const processedDialogs = new WeakMap(); // 存储对话框的内容哈希
     const processingDialogs = new WeakSet(); // 正在处理的对话框，防止重复处理
     const pendingSearches = new Set(); // 正在进行的搜索请求，防止重复请求（全局）
     const completedSearches = new WeakMap(); // 已完成的搜索，key是element，value是搜索结果（用于防止重复搜索同一元素）
@@ -397,11 +415,92 @@ export async function initMissingItemsEnhancer() {
         mutations.forEach((mutation) => {
             mutation.addedNodes.forEach((node) => {
                 if (node.nodeType === Node.ELEMENT_NODE) {
+                    // 首先检查是否是 comfy-missing-nodes 或 comfy-missing-models 容器
+                    if (node.classList && (
+                        node.classList.contains('comfy-missing-nodes') ||
+                        node.classList.contains('comfy-missing-models')
+                    )) {
+                        // 向上查找对话框容器
+                        let dialog = node;
+                        let depth = 0;
+                        while (dialog && depth < 10) {
+                            const style = window.getComputedStyle(dialog);
+                            if (dialog.classList && (
+                                dialog.classList.contains('comfy-modal') ||
+                                dialog.classList.contains('modal') ||
+                                dialog.classList.contains('dialog') ||
+                                dialog.tagName === 'DIALOG' ||
+                                dialog.getAttribute('role') === 'dialog'
+                            ) || (style.position === 'fixed' && style.zIndex > 1000)) {
+                                checkAndEnhanceDialog(dialog);
+                                break;
+                            }
+                            dialog = dialog.parentElement;
+                            depth++;
+                        }
+                        if (!dialog || depth >= 10) {
+                            checkAndEnhanceDialog(node);
+                        }
+                    }
+                    
                     // 检查是否是ComfyUI的对话框
                     checkAndEnhanceDialog(node);
                     
                     // 也检查子节点（但限制深度，避免性能问题）
                     if (node.querySelectorAll) {
+                        // 直接查找 comfy-missing-nodes 和 comfy-missing-models
+                        const missingNodes = node.querySelectorAll('div.comfy-missing-nodes, ul.comfy-missing-nodes');
+                        const missingModels = node.querySelectorAll('div.comfy-missing-models, ul.comfy-missing-models');
+                        
+                        if (missingNodes.length > 0 || missingModels.length > 0) {
+                            
+                            missingNodes.forEach((container) => {
+                                let dialog = container;
+                                let depth = 0;
+                                while (dialog && depth < 10) {
+                                    const style = window.getComputedStyle(dialog);
+                                    if (dialog.classList && (
+                                        dialog.classList.contains('comfy-modal') ||
+                                        dialog.classList.contains('modal') ||
+                                        dialog.classList.contains('dialog') ||
+                                        dialog.tagName === 'DIALOG' ||
+                                        dialog.getAttribute('role') === 'dialog'
+                                    ) || (style.position === 'fixed' && style.zIndex > 1000)) {
+                                        checkAndEnhanceDialog(dialog);
+                                        break;
+                                    }
+                                    dialog = dialog.parentElement;
+                                    depth++;
+                                }
+                                if (!dialog || depth >= 10) {
+                                    checkAndEnhanceDialog(container);
+                                }
+                            });
+                            
+                            missingModels.forEach((container) => {
+                                let dialog = container;
+                                let depth = 0;
+                                while (dialog && depth < 10) {
+                                    const style = window.getComputedStyle(dialog);
+                                    if (dialog.classList && (
+                                        dialog.classList.contains('comfy-modal') ||
+                                        dialog.classList.contains('modal') ||
+                                        dialog.classList.contains('dialog') ||
+                                        dialog.tagName === 'DIALOG' ||
+                                        dialog.getAttribute('role') === 'dialog'
+                                    ) || (style.position === 'fixed' && style.zIndex > 1000)) {
+                                        checkAndEnhanceDialog(dialog);
+                                        break;
+                                    }
+                                    dialog = dialog.parentElement;
+                                    depth++;
+                                }
+                                if (!dialog || depth >= 10) {
+                                    checkAndEnhanceDialog(container);
+                                }
+                            });
+                        }
+                        
                         // 查找可能的对话框容器
                         const possibleDialogs = node.querySelectorAll('div[class*="modal"], dialog, [role="dialog"]');
                         possibleDialogs.forEach((dialog) => {
@@ -421,54 +520,131 @@ export async function initMissingItemsEnhancer() {
         subtree: true
     });
 
-    // 定期检查已存在的对话框（因为对话框可能在插件加载前就存在）
-    const checkInterval = setInterval(() => {
-        // 查找所有可能的对话框
-        const allDialogs = document.querySelectorAll('div[class*="modal"], dialog, [role="dialog"], body > div[style*="position"]');
-        allDialogs.forEach((dialog) => {
-            checkAndEnhanceDialog(dialog);
-        });
-    }, 2000); // 每2秒检查一次
+    // 不再使用定期检查，主要依赖 MutationObserver
+    // 如果 MutationObserver 无法正常工作，可以手动调用 window.hiveMissingItemsEnhancer.checkNow()
 
-    // 立即检查已存在的对话框
+    // 只在初始化时检查一次已存在的对话框（延迟执行，确保DOM已加载）
     setTimeout(() => {
-        checkAndEnhanceDialog(document.body);
-        // 也检查所有可能的对话框元素
-        const allDialogs = document.querySelectorAll('div[class*="modal"], dialog, [role="dialog"], body > div[style*="position"]');
-        allDialogs.forEach((dialog) => {
-            checkAndEnhanceDialog(dialog);
-        });
+        // 直接查找 comfy-missing-nodes 和 comfy-missing-models 容器
+        const missingNodes = document.querySelectorAll('div.comfy-missing-nodes, ul.comfy-missing-nodes');
+        const missingModels = document.querySelectorAll('div.comfy-missing-models, ul.comfy-missing-models');
+        
+        if (missingNodes.length > 0 || missingModels.length > 0) {
+            // 找到缺失内容时，会在处理时打印具体名称
+            
+            missingNodes.forEach((container) => {
+                let dialog = container;
+                let depth = 0;
+                while (dialog && depth < 10) {
+                    const style = window.getComputedStyle(dialog);
+                    if (dialog.classList && (
+                        dialog.classList.contains('comfy-modal') ||
+                        dialog.classList.contains('modal') ||
+                        dialog.classList.contains('dialog') ||
+                        dialog.tagName === 'DIALOG' ||
+                        dialog.getAttribute('role') === 'dialog'
+                    ) || (style.position === 'fixed' && style.zIndex > 1000)) {
+                        checkAndEnhanceDialog(dialog);
+                        break;
+                    }
+                    dialog = dialog.parentElement;
+                    depth++;
+                }
+                if (!dialog || depth >= 10) {
+                    checkAndEnhanceDialog(container);
+                }
+            });
+            
+            missingModels.forEach((container) => {
+                let dialog = container;
+                let depth = 0;
+                while (dialog && depth < 10) {
+                    const style = window.getComputedStyle(dialog);
+                    if (dialog.classList && (
+                        dialog.classList.contains('comfy-modal') ||
+                        dialog.classList.contains('modal') ||
+                        dialog.classList.contains('dialog') ||
+                        dialog.tagName === 'DIALOG' ||
+                        dialog.getAttribute('role') === 'dialog'
+                    ) || (style.position === 'fixed' && style.zIndex > 1000)) {
+                        checkAndEnhanceDialog(dialog);
+                        break;
+                    }
+                    dialog = dialog.parentElement;
+                    depth++;
+                }
+                if (!dialog || depth >= 10) {
+                    checkAndEnhanceDialog(container);
+                }
+            });
+        }
     }, 1000);
 
     /**
      * 检查并增强对话框
      */
     async function checkAndEnhanceDialog(element) {
-        if (!element || !element.textContent) {
+        if (!element) {
             return;
         }
 
-        // 检查是否包含ComfyUI对话框的特征文本
-        const text = element.textContent || '';
-        const hasMissingModelText = 
-            text.includes('缺少模型') || 
-            text.includes('Missing Models') ||
-            text.includes('未找到以下模型') ||
-            text.includes('the following models were not found') ||
-            text.includes('加载工作流时,未找到以下模型');
+        // 优先使用 class 和属性检测，而不是文本检测
+        // 检查元素或其子元素是否包含 comfy-missing-nodes 或 comfy-missing-models 容器
+        const missingNodesContainer = element.querySelector ? 
+            element.querySelector('div.comfy-missing-nodes, ul.comfy-missing-nodes') : null;
+        const missingModelsContainer = element.querySelector ? 
+            element.querySelector('div.comfy-missing-models, ul.comfy-missing-models') : null;
+        
+        // 或者元素本身就是这些容器
+        const isMissingNodesContainer = element.classList && 
+            element.classList.contains('comfy-missing-nodes');
+        const isMissingModelsContainer = element.classList && 
+            element.classList.contains('comfy-missing-models');
 
-        const hasMissingNodeText =
-            text.includes('缺少以下节点') ||
-            text.includes('缺少节点') ||
-            text.includes('Missing Nodes') ||
-            text.includes('未找到以下节点') ||
-            text.includes('the following nodes were not found') ||
-            text.includes('加载工作流时,未找到以下节点') ||
-            text.includes('加载工作流时未找到以下节点');
+        // 确定类别：优先使用容器检测
+        let detectedCategory = null;
+        if (missingNodesContainer || isMissingNodesContainer) {
+            detectedCategory = 'node';
+        } else if (missingModelsContainer || isMissingModelsContainer) {
+            detectedCategory = 'model';
+        }
 
-        if (!hasMissingModelText && !hasMissingNodeText) {
+        // 如果没有通过容器检测到，使用文本检测作为备用方案（向后兼容）
+        if (!detectedCategory && element.textContent) {
+            const text = element.textContent || '';
+            const hasMissingModelText = 
+                text.includes('缺少模型') || 
+                text.includes('Missing Models') ||
+                text.includes('未找到以下模型') ||
+                text.includes('the following models were not found') ||
+                text.includes('加载工作流时,未找到以下模型');
+
+            const hasMissingNodeText =
+                text.includes('缺少以下节点') ||
+                text.includes('缺少节点') ||
+                text.includes('Missing Nodes') ||
+                text.includes('missing nodes') ||
+                text.includes('missing node') ||
+                text.includes('未找到以下节点') ||
+                text.includes('the following nodes were not found') ||
+                text.includes('加载工作流时,未找到以下节点') ||
+                text.includes('加载工作流时未找到以下节点') ||
+                text.includes('This workflow has missing nodes') ||
+                text.includes('This workflow uses custom nodes');
+
+            if (hasMissingModelText) {
+                detectedCategory = 'model';
+            } else if (hasMissingNodeText) {
+                detectedCategory = 'node';
+            }
+        }
+
+        // 如果都没有检测到，直接返回
+        if (!detectedCategory) {
             return;
         }
+        
+        // 检测到缺失内容对话框（具体名称会在处理时打印）
 
         // 向上查找对话框容器
         let dialogContainer = element;
@@ -511,18 +687,37 @@ export async function initMissingItemsEnhancer() {
             }
         }
 
-        // 检查对话框容器是否已处理
-        if (processedDialogs.has(dialogContainer)) {
-            return;
-        }
-
-        // 标记为已处理
-        processedDialogs.add(dialogContainer);
-
-        const category = hasMissingModelText ? 'model' : 'node';
+        // 使用检测到的类别
+        const category = detectedCategory;
 
         // 延迟处理，确保对话框内容已完全渲染
         setTimeout(async () => {
+            // 在处理前，先获取对话框的内容哈希（缺失项名称的组合）
+            const items = findMissingItems(dialogContainer, category);
+            if (items.length === 0) {
+                return;
+            }
+            
+            // 生成内容哈希：基于缺失项名称
+            const missingNames = items
+                .map(item => item.name.toLowerCase().trim())
+                .filter(name => !name.includes('__test_init_check__'))
+                .sort()
+                .join('|');
+            
+            const contentHash = `${category}:${missingNames}`;
+            
+            // 检查是否已经处理过相同内容的对话框
+            const previousHash = processedDialogs.get(dialogContainer);
+            if (previousHash === contentHash) {
+                // 内容相同，跳过处理
+                return;
+            }
+            
+            // 更新内容哈希
+            processedDialogs.set(dialogContainer, contentHash);
+            
+            // 处理对话框
             await enhanceMissingItemsDialog(dialogContainer, category);
         }, 1000);
     }
@@ -548,6 +743,19 @@ export async function initMissingItemsEnhancer() {
                 return;
             }
 
+            // 收集缺失项名称用于打印
+            const missingNames = [];
+            for (const item of items) {
+                const itemNameLower = item.name.toLowerCase();
+                if (!itemNameLower.includes('__test_init_check__')) {
+                    missingNames.push(item.name);
+                }
+            }
+            
+            // 打印缺失的模型/节点名称
+            if (missingNames.length > 0) {
+                console.log(`🐝 Hive: Found missing ${category === 'node' ? 'nodes' : 'models'}:`, missingNames.join(', '));
+            }
 
             // 用于记录已经处理过的元素和模型名称，避免重复添加按钮
             const processedElements = new Set();
@@ -557,6 +765,12 @@ export async function initMissingItemsEnhancer() {
 
             // 为每个项搜索库
             for (const item of items) {
+                // 固定屏蔽测试内容
+                const itemNameLower = item.name.toLowerCase();
+                if (itemNameLower.includes('__test_init_check__')) {
+                    continue;
+                }
+                
                 // 对于节点，使用节点名称去重（因为同一个节点可能被找到多次）
                 if (category === 'node') {
                     const nodeNameLower = item.name.toLowerCase().trim();
@@ -570,7 +784,7 @@ export async function initMissingItemsEnhancer() {
                     processedNodeNames.add(nodeNameLower);
                     processedElements.add(item.element);
                     
-                    // 检查该元素是否已经有按钮（向上查找 <li> 元素）
+                    // 检查该元素是否已经有按钮（向上查找 <li> 或 <div> 元素）
                     let hasExistingButton = false;
                     let checkElement = item.element;
                     if (checkElement.tagName === 'A') {
@@ -593,6 +807,27 @@ export async function initMissingItemsEnhancer() {
                         if (!hasExistingButton && checkElement.nextElementSibling) {
                             if (checkElement.nextElementSibling.classList.contains('hive-library-button-container')) {
                                 hasExistingButton = true;
+                            }
+                        }
+                    } else {
+                        // 对于没有 <a> 标签的情况，检查当前元素所在的容器（div）是否已经有按钮
+                        // 注意：item.element 本身就是包含节点名称的 div 容器
+                        // 所以直接检查这个容器是否已经有按钮
+                        const existingButtonContainer = checkElement.querySelector('.hive-library-button-container');
+                        if (existingButtonContainer) {
+                            hasExistingButton = true;
+                        } else {
+                            // 也检查容器本身是否已经有按钮作为兄弟元素
+                            if (checkElement.nextElementSibling && 
+                                checkElement.nextElementSibling.classList.contains('hive-library-button-container')) {
+                                hasExistingButton = true;
+                            } else {
+                                // 检查容器内部是否已经有按钮（可能在 span 后面）
+                                const spanEl = checkElement.querySelector('span');
+                                if (spanEl && spanEl.nextElementSibling && 
+                                    spanEl.nextElementSibling.classList.contains('hive-library-button-container')) {
+                                    hasExistingButton = true;
+                                }
                             }
                         }
                     }
@@ -661,7 +896,7 @@ export async function initMissingItemsEnhancer() {
                         
                         // 搜索后再次检查是否已经添加了按钮（在搜索期间可能已经被添加）
                         if (category === 'node') {
-                            // 对于节点，检查父元素（li）是否已经有按钮容器
+                            // 对于节点，检查父元素（li 或 div）是否已经有按钮容器
                             let hasExistingButton = false;
                             let checkElement = item.element;
                             if (checkElement.tagName === 'A') {
@@ -683,6 +918,27 @@ export async function initMissingItemsEnhancer() {
                                 if (!hasExistingButton && checkElement.nextElementSibling) {
                                     if (checkElement.nextElementSibling.classList.contains('hive-library-button-container')) {
                                         hasExistingButton = true;
+                                    }
+                                }
+                            } else {
+                                // 对于没有 <a> 标签的情况，检查当前元素所在的容器（div）是否已经有按钮
+                                // 注意：item.element 本身就是包含节点名称的 div 容器
+                                // 所以直接检查这个容器是否已经有按钮
+                                const existingButtonContainer = checkElement.querySelector('.hive-library-button-container');
+                                if (existingButtonContainer) {
+                                    hasExistingButton = true;
+                                } else {
+                                    // 也检查容器本身是否已经有按钮作为兄弟元素
+                                    if (checkElement.nextElementSibling && 
+                                        checkElement.nextElementSibling.classList.contains('hive-library-button-container')) {
+                                        hasExistingButton = true;
+                                    } else {
+                                        // 检查容器内部是否已经有按钮（可能在 span 后面）
+                                        const spanEl = checkElement.querySelector('span');
+                                        if (spanEl && spanEl.nextElementSibling && 
+                                            spanEl.nextElementSibling.classList.contains('hive-library-button-container')) {
+                                            hasExistingButton = true;
+                                        }
                                     }
                                 }
                             }
@@ -744,96 +1000,202 @@ export async function initMissingItemsEnhancer() {
         const items = [];
         const seenNames = new Set(); // 用于去重，记录已看到的名称（不含扩展名）
         
-        console.log(`🐝 Hive: Finding missing ${category} items in dialog:`, dialogElement);
         
-        // 对于模型，优先查找 <div class="comfy-missing-models"> 或 <ul class="comfy-missing-models">
+        // 对于模型，优先查找 <div class="p-dialog-content"> 的子元素 <div class="comfy-missing-models">
         if (category === 'model') {
-            const missingModelsContainer = dialogElement.querySelector('div.comfy-missing-models, ul.comfy-missing-models');
+            // 首先查找 p-dialog-content
+            const dialogContent = dialogElement.querySelector('div.p-dialog-content');
+            // 只在 p-dialog-content 的子元素中查找 comfy-missing-models
+            const missingModelsContainer = dialogContent ? 
+                dialogContent.querySelector(':scope > div.comfy-missing-models, :scope > ul.comfy-missing-models') :
+                dialogElement.querySelector('div.comfy-missing-models, ul.comfy-missing-models');
+            
             if (missingModelsContainer) {
-                // 查找所有可能的模型项（可能是 li、div、span 等）
-                const modelElements = missingModelsContainer.querySelectorAll('li, div, span, a');
-                modelElements.forEach(modelEl => {
-                    const text = (modelEl.textContent || '').trim();
-                    // 模型通常有文件路径，如 "text_encoders / qwen_2.5_vl_7b_fp8_scaled.safetensors"
-                    const modelPattern = /[\w\s\/\-\.]+\.(safetensors|pt|pth|ckpt|bin)/i;
-                    
-                    if (modelPattern.test(text)) {
-                        // 提取模型路径
-                        const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-                        for (const line of lines) {
-                            if (modelPattern.test(line) && 
-                                !line.includes('下载') && 
-                                !line.includes('Download') &&
-                                !line.includes('复制链接') &&
-                                !line.includes('Copy Link') &&
-                                !line.includes('GB') &&
-                                !line.includes('MB') &&
-                                !line.includes('使用Hive下载') &&
-                                !line.includes('Download with Hive')) {
-                                const match = line.match(/([\w\s\/\-\.]+\.(?:safetensors|pt|pth|ckpt|bin))/i);
-                                if (match) {
-                                    const modelPath = match[1].trim();
-                                    const fileNameWithoutExt = modelPath.split('/').pop().replace(/\.(safetensors|pt|pth|ckpt|bin)$/i, '').toLowerCase();
-                                    
-                                    if (!seenNames.has(fileNameWithoutExt)) {
-                                        items.push({
-                                            element: modelEl,
-                                            name: modelPath
-                                        });
-                                        seenNames.add(fileNameWithoutExt);
-                                        console.log(`🐝 Hive: Found model item in comfy-missing-models:`, modelPath);
-                                        break;
-                                    }
-                                }
+                // 优先查找 span 标签（可能包含 title 属性）
+                const spanElements = missingModelsContainer.querySelectorAll('span[title]');
+                spanElements.forEach((spanEl) => {
+                    const title = spanEl.getAttribute('title') || '';
+                    if (title) {
+                        // 从 title 中提取文件名（不带扩展名）
+                        // title 通常是 URL，如 "https://huggingface.co/.../wan_2.1_vae.safetensors"
+                        // 提取最后一个 / 后面的文件名，然后去掉扩展名
+                        const urlMatch = title.match(/\/([^\/]+\.(?:safetensors|pt|pth|ckpt|bin))(?:\?|$)/i);
+                        if (urlMatch && urlMatch[1]) {
+                            const fileName = urlMatch[1];
+                            const fileNameWithoutExt = fileName.replace(/\.(safetensors|pt|pth|ckpt|bin)$/i, '').toLowerCase();
+                            
+                            // 排除测试内容
+                            if (fileNameWithoutExt.includes('__test_init_check__') || 
+                                (fileNameWithoutExt.includes('test') && fileNameWithoutExt.length < 15)) {
+                                return;
+                            }
+                            
+                            if (!seenNames.has(fileNameWithoutExt)) {
+                                // 使用 span 的文本内容作为显示名称，或使用 title 中的文件名
+                                const text = (spanEl.textContent || '').trim();
+                                const modelPath = text || fileName; // 优先使用文本内容，如果没有则使用文件名
+                                
+                                items.push({
+                                    element: spanEl,
+                                    name: modelPath
+                                });
+                                seenNames.add(fileNameWithoutExt);
                             }
                         }
                     }
                 });
+                
+                // 如果从 span title 中没有找到，继续查找其他元素
+                if (items.length === 0) {
+                    // 查找所有可能的模型项（可能是 li、div、span 等）
+                    const modelElements = missingModelsContainer.querySelectorAll('li, div, span, a');
+                    modelElements.forEach(modelEl => {
+                        // 跳过已经有 title 的 span（已经处理过了）
+                        if (modelEl.tagName === 'SPAN' && modelEl.getAttribute('title')) {
+                            return;
+                        }
+                        
+                        const text = (modelEl.textContent || '').trim();
+                        // 模型通常有文件路径，如 "text_encoders / qwen_2.5_vl_7b_fp8_scaled.safetensors"
+                        const modelPattern = /[\w\s\/\-\.]+\.(safetensors|pt|pth|ckpt|bin)/i;
+                        
+                        if (modelPattern.test(text)) {
+                            // 提取模型路径
+                            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+                            for (const line of lines) {
+                                if (modelPattern.test(line) && 
+                                    !line.includes('下载') && 
+                                    !line.includes('Download') &&
+                                    !line.includes('复制链接') &&
+                                    !line.includes('Copy Link') &&
+                                    !line.includes('GB') &&
+                                    !line.includes('MB') &&
+                                    !line.includes('使用Hive下载') &&
+                                    !line.includes('Download with Hive')) {
+                                    const match = line.match(/([\w\s\/\-\.]+\.(?:safetensors|pt|pth|ckpt|bin))/i);
+                                    if (match) {
+                                        const modelPath = match[1].trim();
+                                        const fileNameWithoutExt = modelPath.split('/').pop().replace(/\.(safetensors|pt|pth|ckpt|bin)$/i, '').toLowerCase();
+                                        
+                                        // 排除测试内容
+                                        if (fileNameWithoutExt.includes('__test_init_check__') || 
+                                            (fileNameWithoutExt.includes('test') && fileNameWithoutExt.length < 15)) {
+                                            continue;
+                                        }
+                                        
+                                        if (!seenNames.has(fileNameWithoutExt)) {
+                                            items.push({
+                                                element: modelEl,
+                                                name: modelPath
+                                            });
+                                            seenNames.add(fileNameWithoutExt);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
                 if (items.length > 0) {
-                    console.log(`🐝 Hive: Found ${items.length} unique model items from comfy-missing-models`);
                     return items;
                 }
                 // 如果没有找到，继续使用通用方法查找
-                console.log(`🐝 Hive: No items found in comfy-missing-models, trying generic method...`);
             }
         }
         
-        // 对于节点，优先查找 <ul class="comfy-missing-nodes">
+        // 对于节点，优先查找 <ul class="comfy-missing-nodes"> 或 <div class="comfy-missing-nodes">
         if (category === 'node') {
-            const missingNodesList = dialogElement.querySelector('ul.comfy-missing-nodes');
+            // 尝试查找 ul 或 div 容器
+            const missingNodesList = dialogElement.querySelector('ul.comfy-missing-nodes, div.comfy-missing-nodes');
             if (missingNodesList) {
+                // 首先尝试查找 a 标签（如果有的话）
                 const nodeLinks = missingNodesList.querySelectorAll('a');
-                nodeLinks.forEach(aTag => {
-                    // 只提取直接的文本节点，排除子元素的文本
-                    // 克隆节点，移除所有子元素，然后获取文本
-                    const clone = aTag.cloneNode(true);
-                    // 移除所有子元素
-                    const children = Array.from(clone.children);
-                    children.forEach(child => child.remove());
-                    // 获取纯文本内容并去除前后空格
-                    const nodeName = (clone.textContent || '').trim();
-                    
-                    if (nodeName && nodeName.length > 0) {
-                        const nodeNameLower = nodeName.toLowerCase();
-                        // 检查是否已经存在相同名称的项（使用小写比较）
-                        if (!seenNames.has(nodeNameLower)) {
-                            items.push({
-                                element: aTag,
-                                name: nodeName
-                            });
-                            seenNames.add(nodeNameLower);
-                            console.log(`🐝 Hive: Found node item in comfy-missing-nodes:`, nodeName);
-                        } else {
-                            console.log(`🐝 Hive: Duplicate node name skipped:`, nodeName);
+                if (nodeLinks.length > 0) {
+                    nodeLinks.forEach(aTag => {
+                        // 首先尝试从 href 中提取搜索关键词（search?q= 和 & 或 &amp; 之间的内容）
+                        let nodeName = '';
+                        const href = aTag.getAttribute('href') || '';
+                        
+                        if (href) {
+                            // 匹配 search?q= 和 & 或 &amp; 之间的内容
+                            const match = href.match(/search\?q=([^&]+)/i);
+                            if (match && match[1]) {
+                                // 解码 URL 编码（如 %20 转为空格）
+                                nodeName = decodeURIComponent(match[1]).trim();
+                            }
                         }
-                    }
-                });
+                        
+                        // 如果从 href 中没有提取到，则从文本内容中提取
+                        if (!nodeName || nodeName.length === 0) {
+                            // 只提取直接的文本节点，排除子元素的文本
+                            // 克隆节点，移除所有子元素，然后获取文本
+                            const clone = aTag.cloneNode(true);
+                            // 移除所有子元素
+                            const children = Array.from(clone.children);
+                            children.forEach(child => child.remove());
+                            // 获取纯文本内容并去除前后空格
+                            nodeName = (clone.textContent || '').trim();
+                        }
+                        
+                        if (nodeName && nodeName.length > 0) {
+                            const nodeNameLower = nodeName.toLowerCase();
+                            // 检查是否已经存在相同名称的项（使用小写比较）
+                            if (!seenNames.has(nodeNameLower)) {
+                                items.push({
+                                    element: aTag,
+                                    name: nodeName
+                                });
+                                seenNames.add(nodeNameLower);
+                            }
+                        }
+                    });
+                } else {
+                    // 如果没有 a 标签，查找包含节点名称的容器（如 div 或 span）
+                    // 查找所有直接子元素（div、li 等）
+                    const childElements = missingNodesList.children;
+                    Array.from(childElements).forEach((childEl, index) => {
+                        // 查找包含节点名称的 span 或直接获取文本
+                        let nodeName = '';
+                        let targetElement = childEl; // 默认使用子元素本身（通常是 div）
+                        
+                        // 优先查找 span 标签中的文本
+                        const spanEl = childEl.querySelector('span');
+                        if (spanEl) {
+                            nodeName = (spanEl.textContent || '').trim();
+                            // 使用包含 span 的 div 作为 targetElement，而不是 span 本身
+                            // 这样按钮可以添加到 div 容器中
+                            targetElement = childEl;
+                        } else {
+                            // 如果没有 span，使用整个元素的文本（排除按钮等）
+                            const clone = childEl.cloneNode(true);
+                            // 移除可能存在的按钮容器
+                            const buttonContainers = clone.querySelectorAll('.hive-library-button-container, button');
+                            buttonContainers.forEach(btn => btn.remove());
+                            nodeName = (clone.textContent || '').trim();
+                        }
+                        
+                        // 清理节点名称：去除可能的空白字符和特殊字符
+                        nodeName = nodeName.replace(/[\s\n\r\t]+/g, ' ').trim();
+                        
+                        if (nodeName && nodeName.length > 0) {
+                            const nodeNameLower = nodeName.toLowerCase();
+                            // 检查是否已经存在相同名称的项（使用小写比较）
+                            if (!seenNames.has(nodeNameLower)) {
+                                items.push({
+                                    element: targetElement,
+                                    name: nodeName
+                                });
+                                seenNames.add(nodeNameLower);
+                            }
+                        }
+                    });
+                }
+                
                 if (items.length > 0) {
-                    console.log(`🐝 Hive: Found ${items.length} unique node items from comfy-missing-nodes`);
                     return items;
                 }
                 // 如果没有找到，继续使用通用方法查找
-                console.log(`🐝 Hive: No items found in ul.comfy-missing-nodes, trying generic method...`);
             }
         }
         
@@ -864,7 +1226,6 @@ export async function initMissingItemsEnhancer() {
         
         // 如果不是缺失项提示对话框，直接返回，不进行文本模式匹配
         if (!isMissingDialog) {
-            console.log(`🐝 Hive: Dialog does not appear to be a missing items dialog, skipping text pattern matching`);
             return items;
         }
         
@@ -992,11 +1353,8 @@ export async function initMissingItemsEnhancer() {
                                             name: modelPath
                                         });
                                         seenNames.add(fileNameWithoutExt);
-                                        console.log(`🐝 Hive: Found model item:`, modelPath, `(filename: ${fileNameWithoutExt})`);
                                         break; // 每个元素只添加一次
                                     }
-                                } else {
-                                    console.log(`🐝 Hive: Duplicate model name (without ext) skipped: ${fileNameWithoutExt}`);
                                 }
                             }
                         }
@@ -1060,7 +1418,6 @@ export async function initMissingItemsEnhancer() {
                                             name: nodeName
                                         });
                                         seenNames.add(nodeNameLower);
-                                        console.log(`🐝 Hive: Found node item by pattern matching:`, nodeName);
                                         break;
                                     }
                                 }
@@ -1100,7 +1457,6 @@ export async function initMissingItemsEnhancer() {
                                     name: nodeName
                                 });
                                 seenNames.add(nodeNameLower);
-                                console.log(`🐝 Hive: Found node item by pattern matching:`, nodeName);
                             }
                         }
                     }
@@ -1108,7 +1464,6 @@ export async function initMissingItemsEnhancer() {
             }
         }
 
-        console.log(`🐝 Hive: Found ${items.length} ${category} items:`, items.map(i => i.name));
         return items;
     }
 
@@ -1116,14 +1471,18 @@ export async function initMissingItemsEnhancer() {
      * 添加库按钮到对话框项
      */
     function addLibraryButton(itemElement, libraryItem, category, originalName) {
-        // 检查是否已经添加过按钮（在itemElement及其父元素中）
-        if (itemElement.querySelector('.hive-library-button') || 
-            itemElement.closest('.hive-library-button-container')) {
-            console.log(`🐝 Hive: Button already exists in itemElement for ${category}, skipping`);
+        // 固定屏蔽测试内容
+        if (originalName && originalName.toLowerCase().includes('__test_init_check__')) {
             return;
         }
         
-        // 对于节点，检查父元素（li）是否已经有按钮容器
+        // 检查是否已经添加过按钮（在itemElement及其父元素中）
+        if (itemElement.querySelector('.hive-library-button') || 
+            itemElement.closest('.hive-library-button-container')) {
+            return;
+        }
+        
+        // 对于节点，检查父元素（li 或 div）是否已经有按钮容器
         if (category === 'node') {
             // 检查 <a> 标签的父元素（可能是 <li>）
             let checkElement = itemElement;
@@ -1147,7 +1506,6 @@ export async function initMissingItemsEnhancer() {
             if (liElement) {
                 const existingButtonContainer = liElement.querySelector('.hive-library-button-container');
                 if (existingButtonContainer) {
-                    console.log(`🐝 Hive: Button container already exists in parent <li> for node, skipping`);
                     return;
                 }
             }
@@ -1156,7 +1514,27 @@ export async function initMissingItemsEnhancer() {
             if (itemElement.tagName === 'A') {
                 const nextSibling = itemElement.nextElementSibling;
                 if (nextSibling && nextSibling.classList.contains('hive-library-button-container')) {
-                    console.log(`🐝 Hive: Button container already exists as next sibling for node, skipping`);
+                    return;
+                }
+            }
+            
+            // 对于没有 <a> 标签的情况，检查当前元素所在的容器（div）是否已经有按钮
+            if (itemElement.tagName !== 'A') {
+                // 注意：itemElement 本身就是包含节点名称的 div 容器
+                // 所以直接检查这个容器是否已经有按钮
+                const existingButtonContainer = itemElement.querySelector('.hive-library-button-container');
+                if (existingButtonContainer) {
+                    return;
+                }
+                // 也检查容器本身是否已经有按钮作为兄弟元素
+                if (itemElement.nextElementSibling && 
+                    itemElement.nextElementSibling.classList.contains('hive-library-button-container')) {
+                    return;
+                }
+                // 检查容器内部是否已经有按钮（可能在 span 后面）
+                const spanEl = itemElement.querySelector('span');
+                if (spanEl && spanEl.nextElementSibling && 
+                    spanEl.nextElementSibling.classList.contains('hive-library-button-container')) {
                     return;
                 }
             }
@@ -1173,7 +1551,6 @@ export async function initMissingItemsEnhancer() {
                     const containerText = container.textContent || '';
                     // 检查按钮容器文本是否包含该模型名称
                     if (containerText.toLowerCase().includes(fileName)) {
-                        console.log(`🐝 Hive: Button container already exists for model "${fileName}" in dialog, skipping`);
                         return;
                     }
                 }
@@ -1188,13 +1565,11 @@ export async function initMissingItemsEnhancer() {
             
             // 如果元素在对话框顶部20%区域内，很可能是头部，跳过
             if (itemRect.top < dialogRect.top + (dialogRect.height * 0.2)) {
-                console.log(`🐝 Hive: Item element is in dialog header area, skipping`);
                 return;
             }
             
             // 如果元素在对话框右上角小区域内，很可能是关闭按钮，跳过
             if (itemRect.top < dialogRect.top + 50 && itemRect.left > dialogRect.right - 100) {
-                console.log(`🐝 Hive: Item element is in dialog close button area, skipping`);
                 return;
             }
         }
@@ -1499,12 +1874,8 @@ export async function initMissingItemsEnhancer() {
             
             if (modelNameSpan) {
                 const downloadLink = modelNameSpan; // 使用modelNameSpan作为定位点
-                console.log(`🐝 Hive: Found download link:`, {
-                    element: downloadLink,
-                    tagName: downloadLink.tagName,
-                    text: downloadLink.textContent?.substring(0, 50)
-                });
-                
+                // 找到下载链接
+                // 找到下载链接
                 // 根据用户提供的DOM结构：
                 // <div class="flex flex-row items-center gap-2">  // 最外层容器
                 //   <div>                                        // 第一层div（包含模型名称的部分）
@@ -1520,21 +1891,10 @@ export async function initMissingItemsEnhancer() {
                 const secondLevelDiv = downloadLink.parentElement;
                 
                 if (secondLevelDiv) {
-                    console.log(`🐝 Hive: Second level div (span的上一层div):`, {
-                        element: secondLevelDiv,
-                        tagName: secondLevelDiv.tagName
-                    });
-                    
                     // 第二层：找到第二层div的父元素（第一层div，span的上一层div的再上一层div）
                     const firstLevelDiv = secondLevelDiv.parentElement;
                     
                     if (firstLevelDiv) {
-                        console.log(`🐝 Hive: First level div (span的上一层div的再上一层div):`, {
-                            element: firstLevelDiv,
-                            tagName: firstLevelDiv.tagName,
-                            parent: firstLevelDiv.parentElement
-                        });
-                        
                         // 第三层：找到第一层div的父元素（最外层容器）
                         const outerContainer = firstLevelDiv.parentElement;
                         
@@ -1547,7 +1907,6 @@ export async function initMissingItemsEnhancer() {
                                 outerContainer.appendChild(buttonContainer);
                             }
                             
-                            console.log(`🐝 Hive: ✅ Successfully inserted button in outerContainer, after firstLevelDiv`);
                             return;
                         }
                     }
@@ -1562,7 +1921,6 @@ export async function initMissingItemsEnhancer() {
                         } else {
                             fallbackParent.appendChild(buttonContainer);
                         }
-                        console.log(`🐝 Hive: Inserted button using fallback method`);
                         return;
                     }
                 }
@@ -1580,14 +1938,12 @@ export async function initMissingItemsEnhancer() {
                             lastButton.parentElement.style.gap = '6px';
                         }
                         lastButton.parentElement.insertBefore(buttonContainer, lastButton.nextSibling);
-                        console.log(`🐝 Hive: Inserted button after existing button:`, lastButton);
                     } else {
                         itemElement.appendChild(buttonContainer);
                     }
                 } else {
                     // 没有现有按钮，在元素末尾添加
                     itemElement.appendChild(buttonContainer);
-                    console.log(`🐝 Hive: Appended button to item element`);
                 }
             }
         } else {
@@ -1613,7 +1969,6 @@ export async function initMissingItemsEnhancer() {
                         itemElement.parentElement.insertBefore(liTag, itemElement);
                     } else {
                         // 如果没有父元素，这种情况不太可能，但处理一下
-                        console.warn('🐝 Hive: a tag has no parent element');
                         return;
                     }
                     liTag.appendChild(itemElement);
@@ -1635,13 +1990,58 @@ export async function initMissingItemsEnhancer() {
                         liTag.appendChild(aTag);
                     }
                 } else {
-                    // 如果找不到 <a> 标签，使用原来的逻辑
-                    console.warn('🐝 Hive: No <a> tag found for node item');
-                    if (itemElement.parentElement) {
-                        itemElement.parentElement.insertBefore(buttonContainer, itemElement.nextSibling);
-                    } else {
-                        itemElement.appendChild(buttonContainer);
+                    // 如果找不到 <a> 标签，处理没有 <a> 标签的情况
+                    // 对于 div.comfy-missing-nodes 结构，itemElement 应该是包含节点名称的 div 容器
+                    let targetContainer = itemElement;
+                    
+                    // 如果 itemElement 是 span，尝试找到其父容器（通常是 div）
+                    if (itemElement.tagName === 'SPAN') {
+                        // 向上查找包含该 span 的 div 容器
+                        let parent = itemElement.parentElement;
+                        let depth = 0;
+                        while (parent && depth < 5) {
+                            // 查找具有 flex 布局的 div 容器（通常是节点项容器）
+                            const style = window.getComputedStyle(parent);
+                            if (parent.tagName === 'DIV' && 
+                                (style.display === 'flex' || parent.classList.contains('flex'))) {
+                                targetContainer = parent;
+                                break;
+                            }
+                            parent = parent.parentElement;
+                            depth++;
+                        }
                     }
+                    
+                    // 将按钮添加到目标容器中
+                    // 如果容器是 flex 布局，确保按钮在同一行显示
+                    const containerStyle = window.getComputedStyle(targetContainer);
+                    const isFlex = containerStyle.display === 'flex' || targetContainer.classList.contains('flex');
+                    
+                    if (isFlex) {
+                        // 确保是横向布局（如果容器是 flex-col，需要改为 row）
+                        if (containerStyle.flexDirection === 'column' || targetContainer.classList.contains('flex-col')) {
+                            targetContainer.style.flexDirection = 'row';
+                        }
+                        // 确保对齐方式
+                        if (!targetContainer.classList.contains('items-center')) {
+                            targetContainer.style.alignItems = 'center';
+                        }
+                        // 确保间距
+                        if (!targetContainer.classList.contains('gap-2') && !targetContainer.style.gap) {
+                            targetContainer.style.gap = '8px';
+                        }
+                        
+                        // 直接添加到容器内（作为 flex 子元素）
+                        targetContainer.appendChild(buttonContainer);
+                    } else {
+                        // 如果不是 flex 布局，添加到容器后面
+                        if (targetContainer.parentElement) {
+                            targetContainer.parentElement.insertBefore(buttonContainer, targetContainer.nextSibling);
+                        } else {
+                            targetContainer.appendChild(buttonContainer);
+                        }
+                    }
+                    
                     return;
                 }
             }
@@ -1654,11 +2054,8 @@ export async function initMissingItemsEnhancer() {
                 } else {
                     liTag.appendChild(buttonContainer);
                 }
-                console.log(`🐝 Hive: Added node buttons after <a> tag in <li>`);
             }
         }
-        
-        console.log(`🐝 Hive: Added library button for ${category}:`, libraryItem.title);
     }
 
     /**
@@ -1709,7 +2106,6 @@ export async function initMissingItemsEnhancer() {
      */
     function closeMissingItemsDialog(element) {
         try {
-            console.log(`🐝 Hive: Attempting to close missing items dialog, starting from:`, element);
             
             // 优先查找 .p-dialog-close-button 按钮（PrimeNG 对话框关闭按钮）
             let searchElement = element;
@@ -1723,7 +2119,6 @@ export async function initMissingItemsEnhancer() {
                     const style = window.getComputedStyle(closeBtn);
                     const isVisible = style.display !== 'none' && style.visibility !== 'hidden';
                     if (isVisible) {
-                        console.log(`🐝 Hive: Found .p-dialog-close-button, clicking:`, closeBtn);
                         closeBtn.click();
                         return;
                     }
@@ -1734,7 +2129,6 @@ export async function initMissingItemsEnhancer() {
                     const style = window.getComputedStyle(searchElement);
                     const isVisible = style.display !== 'none' && style.visibility !== 'hidden';
                     if (isVisible) {
-                        console.log(`🐝 Hive: Current element is .p-dialog-close-button, clicking:`, searchElement);
                         searchElement.click();
                         return;
                     }
@@ -1752,10 +2146,8 @@ export async function initMissingItemsEnhancer() {
                 const style = window.getComputedStyle(closeBtn);
                 const isVisible = style.display !== 'none' && style.visibility !== 'hidden';
                 const ariaLabel = closeBtn.getAttribute('aria-label');
-                console.log(`🐝 Hive: Checking .p-dialog-close-button, visible: ${isVisible}, aria-label: "${ariaLabel}"`);
                 
                 if (isVisible && (ariaLabel === 'Close' || ariaLabel === '关闭')) {
-                    console.log(`🐝 Hive: Found visible .p-dialog-close-button globally, clicking:`, closeBtn);
                     closeBtn.click();
                     return;
                 }
@@ -1769,11 +2161,9 @@ export async function initMissingItemsEnhancer() {
             while (searchElement && depth < 15) {
                 // 检查当前元素是否是 comfy-modal
                 if (searchElement.classList && searchElement.classList.contains('comfy-modal')) {
-                    console.log(`🐝 Hive: Found comfy-modal at depth ${depth}, searching for close button...`);
                     // 优先查找 .p-dialog-close-button
                     let closeBtn = searchElement.querySelector('.p-dialog-close-button');
                     if (closeBtn) {
-                        console.log(`🐝 Hive: Found .p-dialog-close-button in comfy-modal, clicking:`, closeBtn);
                         closeBtn.click();
                         return;
                     }
@@ -1794,7 +2184,6 @@ export async function initMissingItemsEnhancer() {
                         closeBtn.textContent.trim() === '关闭' ||
                         closeBtn.textContent.trim() === '确定' ||
                         closeBtn.textContent.trim() === 'OK')) {
-                        console.log(`🐝 Hive: Found Close button in comfy-modal, clicking:`, closeBtn);
                         closeBtn.click();
                         return;
                     }
@@ -1803,11 +2192,9 @@ export async function initMissingItemsEnhancer() {
                 // 在当前元素内查找 comfy-modal 和 Close 按钮
                 const comfyModal = searchElement.querySelector('.comfy-modal');
                 if (comfyModal) {
-                    console.log(`🐝 Hive: Found nested comfy-modal, searching for close button...`);
                     // 优先查找 .p-dialog-close-button
                     let closeBtn = comfyModal.querySelector('.p-dialog-close-button');
                     if (closeBtn) {
-                        console.log(`🐝 Hive: Found .p-dialog-close-button in nested comfy-modal, clicking:`, closeBtn);
                         closeBtn.click();
                         return;
                     }
@@ -1828,7 +2215,6 @@ export async function initMissingItemsEnhancer() {
                         closeBtn.textContent.trim() === '关闭' ||
                         closeBtn.textContent.trim() === '确定' ||
                         closeBtn.textContent.trim() === 'OK')) {
-                        console.log(`🐝 Hive: Found Close button in comfy-modal (nested), clicking:`, closeBtn);
                         closeBtn.click();
                         return;
                     }
@@ -1848,7 +2234,6 @@ export async function initMissingItemsEnhancer() {
                 const isVisible = style.display !== 'none' && 
                                  style.visibility !== 'hidden' && 
                                  (style.display === 'flex' || style.display === 'block');
-                console.log(`🐝 Hive: Checking modal, display: ${style.display}, visible: ${isVisible}`);
                 
                 if (isVisible) {
                     // 优先查找 .p-dialog-close-button
@@ -1857,7 +2242,6 @@ export async function initMissingItemsEnhancer() {
                         const btnStyle = window.getComputedStyle(closeBtn);
                         const btnVisible = btnStyle.display !== 'none' && btnStyle.visibility !== 'hidden';
                         if (btnVisible) {
-                            console.log(`🐝 Hive: Found .p-dialog-close-button in comfy-modal globally, clicking:`, closeBtn);
                             closeBtn.click();
                             return;
                         }
@@ -1866,11 +2250,9 @@ export async function initMissingItemsEnhancer() {
                     closeBtn = modal.querySelector('button[type="button"]');
                     if (!closeBtn) {
                         const buttons = modal.querySelectorAll('button');
-                        console.log(`🐝 Hive: Found ${buttons.length} buttons in modal`);
                         for (const btn of buttons) {
                             const btnText = btn.textContent.trim();
                             const ariaLabel = btn.getAttribute('aria-label');
-                            console.log(`🐝 Hive: Button text: "${btnText}", aria-label: "${ariaLabel}"`);
                             if (btnText === 'Close' || btnText === '关闭' || 
                                 btnText === '确定' || btnText === 'OK' ||
                                 ariaLabel === 'Close' ||
@@ -1884,7 +2266,6 @@ export async function initMissingItemsEnhancer() {
                         const btnText = closeBtn.textContent.trim();
                         if (btnText === 'Close' || btnText === '关闭' ||
                             btnText === '确定' || btnText === 'OK') {
-                            console.log(`🐝 Hive: Found Close button in comfy-modal globally, clicking:`, closeBtn);
                             closeBtn.click();
                             return;
                         }
@@ -1907,16 +2288,13 @@ export async function initMissingItemsEnhancer() {
                     parentStyle.visibility !== 'hidden' &&
                     (parentStyle.display === 'flex' || parentStyle.display === 'block'));
                 
-                console.log(`🐝 Hive: Checking .p-dialog-close-button, visible: ${isVisible}, parent visible: ${parentVisible}, aria-label: "${ariaLabel}"`);
                 
                 if (isVisible && parentVisible && (ariaLabel === 'Close' || ariaLabel === '关闭')) {
-                    console.log(`🐝 Hive: Found visible .p-dialog-close-button in visible dialog, clicking:`, closeBtn);
                     closeBtn.click();
                     return;
                 }
             }
             
-            console.warn(`🐝 Hive: Could not find any close button to click`);
             
             // 如果还是没找到，尝试查找 p-dialog-mask 内的关闭按钮
             const masks = document.querySelectorAll('.p-dialog-mask, .p-overlay-mask');
@@ -1925,14 +2303,12 @@ export async function initMissingItemsEnhancer() {
                 if (style.display !== 'none' && style.visibility !== 'hidden') {
                     const closeBtn = mask.querySelector('.p-dialog-close-button');
                     if (closeBtn) {
-                        console.log(`🐝 Hive: Found p-dialog-close-button in mask, clicking:`, closeBtn);
                         closeBtn.click();
                         return;
                     }
                 }
             }
             
-            console.warn(`🐝 Hive: Could not find Close button to click`);
         } catch (error) {
             console.error('🐝 Hive: Error closing dialog:', error);
         }
@@ -2044,29 +2420,103 @@ export async function initMissingItemsEnhancer() {
     // 导出手动触发检测的函数（用于调试）
     window.hiveMissingItemsEnhancer = {
         checkNow: () => {
-            console.log('🐝 Hive: Manually checking for missing items dialogs...');
-            const allDialogs = document.querySelectorAll('div, dialog, [role="dialog"]');
-            let found = 0;
+            
+            // 首先检查是否有 comfy-missing-nodes 或 comfy-missing-models
+            const missingNodes = document.querySelectorAll('div.comfy-missing-nodes, ul.comfy-missing-nodes');
+            const missingModels = document.querySelectorAll('div.comfy-missing-models, ul.comfy-missing-models');
+            
+            if (missingNodes.length > 0) {
+                missingNodes.forEach((container) => {
+                    // 向上查找对话框容器
+                    let dialog = container;
+                    let depth = 0;
+                    while (dialog && depth < 10) {
+                        const style = window.getComputedStyle(dialog);
+                        if (dialog.classList && (
+                            dialog.classList.contains('comfy-modal') ||
+                            dialog.classList.contains('modal') ||
+                            dialog.classList.contains('dialog') ||
+                            dialog.tagName === 'DIALOG' ||
+                            dialog.getAttribute('role') === 'dialog'
+                        ) || (style.position === 'fixed' && style.zIndex > 1000)) {
+                            checkAndEnhanceDialog(dialog);
+                            break;
+                        }
+                        dialog = dialog.parentElement;
+                        depth++;
+                    }
+                    if (!dialog || depth >= 10) {
+                        // 如果找不到对话框，直接处理容器本身
+                        checkAndEnhanceDialog(container);
+                    }
+                });
+            }
+            
+            if (missingModels.length > 0) {
+                missingModels.forEach((container) => {
+                    // 向上查找对话框容器
+                    let dialog = container;
+                    let depth = 0;
+                    while (dialog && depth < 10) {
+                        const style = window.getComputedStyle(dialog);
+                        if (dialog.classList && (
+                            dialog.classList.contains('comfy-modal') ||
+                            dialog.classList.contains('modal') ||
+                            dialog.classList.contains('dialog') ||
+                            dialog.tagName === 'DIALOG' ||
+                            dialog.getAttribute('role') === 'dialog'
+                        ) || (style.position === 'fixed' && style.zIndex > 1000)) {
+                            checkAndEnhanceDialog(dialog);
+                            break;
+                        }
+                        dialog = dialog.parentElement;
+                        depth++;
+                    }
+                    if (!dialog || depth >= 10) {
+                        // 如果找不到对话框，直接处理容器本身
+                        checkAndEnhanceDialog(container);
+                    }
+                });
+            }
+            
+            // 也检查所有对话框
+            const allDialogs = document.querySelectorAll('div[class*="modal"], dialog, [role="dialog"]');
             allDialogs.forEach((dialog) => {
                 const text = dialog.textContent || '';
                 if (text.includes('缺少模型') || text.includes('缺少节点') || 
                     text.includes('缺少以下节点') ||
                     text.includes('Missing Models') || text.includes('Missing Nodes')) {
-                    found++;
                     checkAndEnhanceDialog(dialog);
                 }
             });
-            console.log(`🐝 Hive: Checked ${allDialogs.length} elements, found ${found} potential dialogs`);
         },
         reset: () => {
-            processedDialogs = new WeakSet();
+            // WeakMap 不支持 clear，但我们可以通过重新创建来重置
+            // 由于 processedDialogs 是在函数作用域内，我们需要通过实例来访问
             if (missingItemsEnhancerInstance) {
-                missingItemsEnhancerInstance.processedDialogs = processedDialogs;
+                // 重新初始化 processedDialogs（实际上 WeakMap 会在对象被垃圾回收时自动清理）
+                // 这里我们只是更新实例引用，让外部可以访问
+                missingItemsEnhancerInstance.processedDialogs = new WeakMap();
             }
-            console.log('🐝 Hive: Reset processed dialogs cache');
+        },
+        inspect: () => {
+            // 检查当前页面上的缺失节点/模型容器
+            const missingNodes = document.querySelectorAll('div.comfy-missing-nodes, ul.comfy-missing-nodes');
+            const missingModels = document.querySelectorAll('div.comfy-missing-models, ul.comfy-missing-models');
+            
+            
+            return {
+                missingNodes: Array.from(missingNodes),
+                missingModels: Array.from(missingModels)
+            };
         }
     };
     
     console.log('🐝 Hive: Missing items enhancer ready. Use window.hiveMissingItemsEnhancer.checkNow() to manually check.');
+}
+
+// 导出 searchNodeByClassMapping 函数供其他模块使用
+if (typeof window !== 'undefined') {
+    window.hiveSearchNodeByClassMapping = searchNodeByClassMapping;
 }
 

@@ -12,7 +12,7 @@ const SUPABASE_URL = 'https://mgkcodofcjbuxpejdusf.supabase.co';  // 请填入�
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1na2NvZG9mY2pidXhwZWpkdXNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3ODI5MzMsImV4cCI6MjA4MDM1ODkzM30.KKTXgF8xg6CkfLmFYiEomtNmWJBZUPDeDzhpYTs9ST0';   // 请填入您的 Supabase 匿名密钥 (anon key)
 
 // 插件版本号
-const PLUGIN_VERSION = '1.0.4';
+const PLUGIN_VERSION = '1.0.5';
 
 // 全局变量 - 按钮需要访问
 let isInitialized = false; // 是否已初始化
@@ -76,12 +76,217 @@ app.registerExtension({
             const nodeInstallerModal = document.getElementById('hive-node-installer-guide-modal');
             const modelDownloaderModal = document.getElementById('hive-model-downloader-guide-modal');
             const feedbackModal = document.getElementById('hive-feedback-modal');
+            const llmConfigModal = document.getElementById('hive-llm-config-modal');
+            const reversePromptModal = document.getElementById('hive-reverse-prompt-modal');
+            const randomPromptModal = document.getElementById('hive-random-prompt-modal');
+            const imageContextMenu = document.getElementById('hive-image-context-menu');
+            
+            // 检查是否是灯箱内的图片
+            const lightboxEl = document.getElementById('hive-lightbox');
+            const isLightboxImage = lightboxEl && lightboxEl.contains(e.target) && e.target.tagName === 'IMG';
+            
+            // 检查是否是侧边栏内的图片（直接在全局监听器中处理）
+            const isSidebarImage = sidebarEl && sidebarEl.contains(e.target) && e.target.tagName === 'IMG';
+            
+            // 如果是灯箱内的图片，直接处理右键菜单
+            if (isLightboxImage) {
+                
+                // 检查是否是有效的图片URL
+                if (!e.target.src || (e.target.src.startsWith('data:') && e.target.src.length < 100)) {
+                    return;
+                }
+                
+                // 阻止默认右键菜单和事件传播
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                // 移除现有的自定义菜单
+                const existingMenu = document.getElementById('hive-image-context-menu');
+                if (existingMenu) {
+                    existingMenu.remove();
+                }
+                
+                const getText = (key, fallback = '') => {
+                    if (typeof window !== 'undefined' && typeof window.t === 'function') {
+                        return window.t(key);
+                    }
+                    return fallback;
+                };
+                
+                const reversePromptText = getText('contextMenu.reversePrompt', 'Hive 提示词反推');
+                
+                // 创建菜单
+                const menu = document.createElement('div');
+                menu.id = 'hive-image-context-menu';
+                menu.style.cssText = `
+                    position: fixed;
+                    left: ${e.clientX}px;
+                    top: ${e.clientY}px;
+                    background-color: var(--comfy-menu-bg);
+                    border: 1px solid var(--border-color);
+                    border-radius: 4px;
+                    padding: 4px 0;
+                    z-index: 10002;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+                    min-width: 200px;
+                `;
+                
+                const menuItem = document.createElement('div');
+                menuItem.style.cssText = `
+                    padding: 8px 16px;
+                    color: var(--input-text);
+                    cursor: pointer;
+                    font-size: 14px;
+                `;
+                menuItem.textContent = `🐝 ${reversePromptText}`;
+                menuItem.onmouseenter = () => {
+                    menuItem.style.backgroundColor = 'var(--comfy-input-bg)';
+                };
+                menuItem.onmouseleave = () => {
+                    menuItem.style.backgroundColor = 'transparent';
+                };
+                menuItem.onclick = () => {
+                    menu.remove();
+                    // 检查是否配置了视觉模型API
+                    const visionApiKey = localStorage.getItem('hive_vision_api_key') || '';
+                    const visionApiUrl = localStorage.getItem('hive_vision_api_url') || '';
+                    const visionModel = localStorage.getItem('hive_vision_model') || '';
+                    if (!visionApiKey || !visionApiUrl || !visionModel) {
+                        const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
+                            '请先在设置界面配置视觉模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"视觉模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                        showToast(pleaseConfigureText, 'warning');
+                        return;
+                    }
+                    if (typeof window.showReversePromptModal === 'function') {
+                        window.showReversePromptModal(e.target.src);
+                    }
+                };
+                
+                menu.appendChild(menuItem);
+                document.body.appendChild(menu);
+                
+                // 点击其他地方关闭菜单
+                const closeMenu = (e2) => {
+                    if (!menu.contains(e2.target)) {
+                        menu.remove();
+                        document.removeEventListener('click', closeMenu);
+                        document.removeEventListener('contextmenu', closeMenu);
+                    }
+                };
+                
+                setTimeout(() => {
+                    document.addEventListener('click', closeMenu, true);
+                    document.addEventListener('contextmenu', closeMenu, true);
+                }, 100);
+                
+                return; // 处理完成，不再继续
+            }
+            
+            // 如果是侧边栏内的图片，直接处理右键菜单
+            if (isSidebarImage) {
+                
+                // 检查是否是有效的图片URL
+                if (!e.target.src || (e.target.src.startsWith('data:') && e.target.src.length < 100)) {
+                    return;
+                }
+                
+                // 阻止默认右键菜单和事件传播
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                // 移除现有的自定义菜单
+                const existingMenu = document.getElementById('hive-image-context-menu');
+                if (existingMenu) {
+                    existingMenu.remove();
+                }
+                
+                const getText = (key, fallback = '') => {
+                    if (typeof window !== 'undefined' && typeof window.t === 'function') {
+                        return window.t(key);
+                    }
+                    return fallback;
+                };
+                
+                const reversePromptText = getText('contextMenu.reversePrompt', 'Hive 提示词反推');
+                
+                // 创建菜单
+                const menu = document.createElement('div');
+                menu.id = 'hive-image-context-menu';
+                menu.style.cssText = `
+                    position: fixed;
+                    left: ${e.clientX}px;
+                    top: ${e.clientY}px;
+                    background-color: var(--comfy-menu-bg);
+                    border: 1px solid var(--border-color);
+                    border-radius: 4px;
+                    padding: 4px 0;
+                    z-index: 10001;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+                    min-width: 200px;
+                `;
+                
+                const menuItem = document.createElement('div');
+                menuItem.style.cssText = `
+                    padding: 8px 16px;
+                    color: var(--input-text);
+                    cursor: pointer;
+                    font-size: 14px;
+                `;
+                menuItem.textContent = `🐝 ${reversePromptText}`;
+                menuItem.onmouseenter = () => {
+                    menuItem.style.backgroundColor = 'var(--comfy-input-bg)';
+                };
+                menuItem.onmouseleave = () => {
+                    menuItem.style.backgroundColor = 'transparent';
+                };
+                menuItem.onclick = () => {
+                    menu.remove();
+                    // 检查是否配置了视觉模型API
+                    const visionApiKey = localStorage.getItem('hive_vision_api_key') || '';
+                    const visionApiUrl = localStorage.getItem('hive_vision_api_url') || '';
+                    const visionModel = localStorage.getItem('hive_vision_model') || '';
+                    if (!visionApiKey || !visionApiUrl || !visionModel) {
+                        const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
+                            '请先在设置界面配置视觉模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"视觉模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                        showToast(pleaseConfigureText, 'warning');
+                        return;
+                    }
+                    if (typeof window.showReversePromptModal === 'function') {
+                        window.showReversePromptModal(e.target.src);
+                    }
+                };
+                
+                menu.appendChild(menuItem);
+                document.body.appendChild(menu);
+                
+                // 点击其他地方关闭菜单
+                const closeMenu = (e2) => {
+                    if (!menu.contains(e2.target)) {
+                        menu.remove();
+                        document.removeEventListener('click', closeMenu);
+                        document.removeEventListener('contextmenu', closeMenu);
+                    }
+                };
+                
+                setTimeout(() => {
+                    document.addEventListener('click', closeMenu, true);
+                    document.addEventListener('contextmenu', closeMenu, true);
+                }, 100);
+                
+                return; // 处理完成，不再继续
+            }
             
             const isInPlugin = (sidebarEl && sidebarEl.contains(e.target)) ||
                               (settingsModal && settingsModal.contains(e.target)) ||
                               (nodeInstallerModal && nodeInstallerModal.contains(e.target)) ||
                               (modelDownloaderModal && modelDownloaderModal.contains(e.target)) ||
-                              (feedbackModal && feedbackModal.contains(e.target));
+                              (feedbackModal && feedbackModal.contains(e.target)) ||
+                              (llmConfigModal && llmConfigModal.contains(e.target)) ||
+                              (reversePromptModal && reversePromptModal.contains(e.target)) ||
+                              (randomPromptModal && randomPromptModal.contains(e.target)) ||
+                              (imageContextMenu && imageContextMenu.contains(e.target));
             
             if (isInPlugin) {
                 // 如果右键点击在插件内，阻止事件继续传播
@@ -97,12 +302,14 @@ app.registerExtension({
             const nodeInstallerModal = document.getElementById('hive-node-installer-guide-modal');
             const modelDownloaderModal = document.getElementById('hive-model-downloader-guide-modal');
             const feedbackModal = document.getElementById('hive-feedback-modal');
+            const llmConfigModal = document.getElementById('hive-llm-config-modal');
             
             const isInPlugin = (sidebarEl && sidebarEl.contains(e.target)) ||
                               (settingsModal && settingsModal.contains(e.target)) ||
                               (nodeInstallerModal && nodeInstallerModal.contains(e.target)) ||
                               (modelDownloaderModal && modelDownloaderModal.contains(e.target)) ||
-                              (feedbackModal && feedbackModal.contains(e.target));
+                              (feedbackModal && feedbackModal.contains(e.target)) ||
+                              (llmConfigModal && llmConfigModal.contains(e.target));
             
             if (isInPlugin) {
                 // 允许文字选择，不阻止
@@ -1607,6 +1814,19 @@ app.registerExtension({
                                             <span>${tt('settings.dontShowModelDownloader')}</span>
                                         </div>
                                     </div>
+                                    <div class="hive-settings-llm-api-section" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                                        <button class="hive-settings-configure-llm-btn" style="
+                                            padding: 10px 20px;
+                                            background-color: #ffbd2e;
+                                            color: #000;
+                                            border: none;
+                                            border-radius: 6px;
+                                            font-weight: 500;
+                                            cursor: pointer;
+                                            font-size: 14px;
+                                            width: 100%;
+                                        ">🤖 ${tt('settings.configureLLMAPI')}</button>
+                                    </div>
                                 </div>
                                 <div class="hive-settings-section">
                                     <h3>${tt('settings.about')}</h3>
@@ -1921,6 +2141,15 @@ app.registerExtension({
                 };
             }
 
+            // 配置大模型API按钮
+            const configureLLMBtn = modal.querySelector('.hive-settings-configure-llm-btn');
+            if (configureLLMBtn) {
+                configureLLMBtn.onclick = () => {
+                    modal.remove();
+                    showLLMConfigModal();
+                };
+            }
+
             document.body.appendChild(modal);
         };
 
@@ -2097,6 +2326,660 @@ app.registerExtension({
             setTimeout(() => {
                 titleInput.focus();
             }, 100);
+        }
+
+        // 显示大模型API配置弹层
+        function showLLMConfigModal() {
+            if (document.getElementById('hive-llm-config-modal')) return;
+
+            const isZh = getCurrentLanguage() === 'zh';
+            const tt = (key) => typeof window !== 'undefined' && typeof window.t === 'function' ? window.t(key) : (isZh ? key : key);
+
+            // 获取当前配置
+            const llmProvider = localStorage.getItem('hive_llm_provider') || '';
+            const llmApiKey = localStorage.getItem('hive_llm_api_key') || '';
+            const llmApiUrl = localStorage.getItem('hive_llm_api_url') || '';
+            const llmModel = localStorage.getItem('hive_llm_model') || '';
+
+            const visionProvider = localStorage.getItem('hive_vision_provider') || '';
+            const visionApiKey = localStorage.getItem('hive_vision_api_key') || '';
+            const visionApiUrl = localStorage.getItem('hive_vision_api_url') || '';
+            const visionModel = localStorage.getItem('hive_vision_model') || '';
+
+            // 提供商配置（智谱放在第一个）
+            const providers = {
+                zhipu: {
+                    name: tt('settings.zhipu'),
+                    apiUrl: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+                    models: [],
+                    apiKeyUrl: 'https://www.bigmodel.cn/invite?icode=3%2FQmsHllBSXGhq8CbMwpXVwpqjqOwPB5EXW6OL4DgqY%3D'
+                },
+                siliconflow: {
+                    name: tt('settings.siliconflow'),
+                    apiUrl: 'https://api.siliconflow.cn/v1/chat/completions',
+                    models: [],
+                    apiKeyUrl: 'https://cloud.siliconflow.cn/i/08kSZg5M'
+                },
+                ai302: {
+                    name: tt('settings.ai302'),
+                    apiUrl: 'https://api.302.ai/v1/chat/completions',
+                    models: [],
+                    apiKeyUrl: 'https://302.ai/'
+                },
+                openrouter: {
+                    name: tt('settings.openrouter'),
+                    apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
+                    models: [],
+                    apiKeyUrl: 'https://openrouter.ai/'
+                }
+            };
+
+            const modal = document.createElement('div');
+            modal.id = 'hive-llm-config-modal';
+            modal.innerHTML = `
+                <div class="hive-settings-overlay">
+                    <div class="hive-settings-content" style="max-width: 800px;">
+                        <div class="hive-settings-header">
+                            <h2>🤖 ${tt('settings.configureLLMAPI')}</h2>
+                            <button class="hive-settings-close" title="${tt('common.close')}">×</button>
+                        </div>
+                        <div class="hive-settings-body">
+                            <div class="hive-settings-sections">
+                                <!-- 大语言模型配置 -->
+                                <div class="hive-settings-section">
+                                    <h3>${tt('settings.llmAPIConfig')}</h3>
+                                    <div class="hive-settings-form-group">
+                                        <label>${tt('settings.provider')}</label>
+                                        <select class="hive-settings-select llm-provider-select" style="width: 100%; padding: 8px; margin-bottom: 12px;">
+                                            <option value="">${tt('settings.selectProvider')}</option>
+                                            <option value="zhipu" ${llmProvider === 'zhipu' ? 'selected' : ''}>${tt('settings.zhipu')}</option>
+                                            <option value="siliconflow" ${llmProvider === 'siliconflow' ? 'selected' : ''}>${tt('settings.siliconflow')}</option>
+                                            <option value="ai302" ${llmProvider === 'ai302' ? 'selected' : ''}>${tt('settings.ai302')}</option>
+                                            <option value="openrouter" ${llmProvider === 'openrouter' ? 'selected' : ''}>${tt('settings.openrouter')}</option>
+                                        </select>
+                                    </div>
+                                    <div class="hive-settings-form-group llm-api-url-group" style="display: ${llmProvider ? 'block' : 'none'};">
+                                        <label>${tt('settings.apiUrl')}</label>
+                                        <input type="text" class="hive-settings-input llm-api-url-input" value="${llmApiUrl || (llmProvider ? providers[llmProvider]?.apiUrl : '')}" placeholder="${tt('settings.enterAPIUrl')}" style="width: 100%; padding: 8px; margin-bottom: 12px;">
+                                    </div>
+                                    <div class="hive-settings-form-group">
+                                        <label>${tt('settings.apiKey')}</label>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <input type="password" class="hive-settings-input llm-api-key-input" value="${llmApiKey}" placeholder="${tt('settings.enterAPIKey')}" style="flex: 1; padding: 8px; margin-bottom: 12px;">
+                                            <a href="#" class="llm-api-key-link" target="_blank" rel="noopener noreferrer" style="
+                                                display: ${llmProvider ? 'inline-block' : 'none'};
+                                                padding: 8px 12px;
+                                                background-color: var(--comfy-input-bg);
+                                                color: var(--input-text);
+                                                text-decoration: none;
+                                                border: 1px solid var(--border-color);
+                                                border-radius: 4px;
+                                                font-size: 12px;
+                                                white-space: nowrap;
+                                                margin-bottom: 12px;
+                                                transition: background-color 0.2s;
+                                            " onmouseover="this.style.backgroundColor='var(--comfy-menu-bg)'" onmouseout="this.style.backgroundColor='var(--comfy-input-bg)'">${tt('settings.getAPIKey')}</a>
+                                        </div>
+                                    </div>
+                                    <div class="hive-settings-form-group">
+                                        <label>${tt('settings.availableModels')}</label>
+                                        <div class="llm-models-container" style="min-height: 40px; margin-bottom: 12px; position: relative;">
+                                            <div class="llm-models-loading" style="display: none; color: var(--descrip-text); padding: 8px;">${tt('settings.loadingModels')}</div>
+                                            <div class="llm-model-autocomplete-wrapper" style="position: relative; display: none;">
+                                                <input type="text" class="hive-settings-input llm-model-input" value="${llmModel || ''}" placeholder="${tt('settings.selectModel')}" list="llm-model-datalist" style="width: 100%; padding: 8px; margin-bottom: 0;">
+                                                <datalist id="llm-model-datalist" class="llm-model-datalist"></datalist>
+                                            </div>
+                                            <div class="llm-models-empty" style="color: var(--descrip-text); padding: 8px; display: none;">${tt('settings.noModels')}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- 视觉模型配置 -->
+                                <div class="hive-settings-section">
+                                    <h3>${tt('settings.visionAPIConfig')}</h3>
+                                    <div class="hive-settings-form-group">
+                                        <label>${tt('settings.provider')}</label>
+                                        <select class="hive-settings-select vision-provider-select" style="width: 100%; padding: 8px; margin-bottom: 12px;">
+                                            <option value="">${tt('settings.selectProvider')}</option>
+                                            <option value="zhipu" ${visionProvider === 'zhipu' ? 'selected' : ''}>${tt('settings.zhipu')}</option>
+                                            <option value="siliconflow" ${visionProvider === 'siliconflow' ? 'selected' : ''}>${tt('settings.siliconflow')}</option>
+                                            <option value="ai302" ${visionProvider === 'ai302' ? 'selected' : ''}>${tt('settings.ai302')}</option>
+                                            <option value="openrouter" ${visionProvider === 'openrouter' ? 'selected' : ''}>${tt('settings.openrouter')}</option>
+                                        </select>
+                                    </div>
+                                    <div class="hive-settings-form-group vision-api-url-group" style="display: ${visionProvider ? 'block' : 'none'};">
+                                        <label>${tt('settings.apiUrl')}</label>
+                                        <input type="text" class="hive-settings-input vision-api-url-input" value="${visionApiUrl || (visionProvider ? providers[visionProvider]?.apiUrl : '')}" placeholder="${tt('settings.enterAPIUrl')}" style="width: 100%; padding: 8px; margin-bottom: 12px;">
+                                    </div>
+                                    <div class="hive-settings-form-group">
+                                        <label>${tt('settings.apiKey')}</label>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <input type="password" class="hive-settings-input vision-api-key-input" value="${visionApiKey}" placeholder="${tt('settings.enterAPIKey')}" style="flex: 1; padding: 8px; margin-bottom: 12px;">
+                                            <a href="#" class="vision-api-key-link" target="_blank" rel="noopener noreferrer" style="
+                                                display: ${visionProvider ? 'inline-block' : 'none'};
+                                                padding: 8px 12px;
+                                                background-color: var(--comfy-input-bg);
+                                                color: var(--input-text);
+                                                text-decoration: none;
+                                                border: 1px solid var(--border-color);
+                                                border-radius: 4px;
+                                                font-size: 12px;
+                                                white-space: nowrap;
+                                                margin-bottom: 12px;
+                                                transition: background-color 0.2s;
+                                            " onmouseover="this.style.backgroundColor='var(--comfy-menu-bg)'" onmouseout="this.style.backgroundColor='var(--comfy-input-bg)'">${tt('settings.getAPIKey')}</a>
+                                        </div>
+                                    </div>
+                                    <div class="hive-settings-form-group">
+                                        <label>${tt('settings.availableModels')}</label>
+                                        <div class="vision-models-container" style="min-height: 40px; margin-bottom: 12px; position: relative;">
+                                            <div class="vision-models-loading" style="display: none; color: var(--descrip-text); padding: 8px;">${tt('settings.loadingModels')}</div>
+                                            <div class="vision-model-autocomplete-wrapper" style="position: relative; display: none;">
+                                                <input type="text" class="hive-settings-input vision-model-input" value="${visionModel || ''}" placeholder="${tt('settings.selectModel')}" list="vision-model-datalist" style="width: 100%; padding: 8px; margin-bottom: 0;">
+                                                <datalist id="vision-model-datalist" class="vision-model-datalist"></datalist>
+                                            </div>
+                                            <div class="vision-models-empty" style="color: var(--descrip-text); padding: 8px; display: none;">${tt('settings.noModels')}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hive-settings-footer">
+                            <button class="hive-settings-close-btn">${tt('common.close')}</button>
+                            <button class="hive-llm-config-save-btn" style="
+                                padding: 10px 20px;
+                                background-color: #ffbd2e;
+                                color: #000;
+                                border: none;
+                                border-radius: 6px;
+                                font-weight: 500;
+                                cursor: pointer;
+                                margin-left: 12px;
+                            ">${tt('settings.saveConfig')}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 绑定关闭事件
+            const closeModal = () => {
+                modal.remove();
+            };
+
+            const closeBtn = modal.querySelector('.hive-settings-close');
+            const closeFooterBtn = modal.querySelector('.hive-settings-close-btn');
+            const overlay = modal.querySelector('.hive-settings-overlay');
+
+            closeBtn.onclick = closeModal;
+            closeFooterBtn.onclick = closeModal;
+            overlay.onclick = (e) => {
+                if (e.target === overlay || e.target.classList.contains('hive-settings-overlay')) {
+                    closeModal();
+                }
+            };
+
+            // Esc键关闭
+            const handleKeyDown = (e) => {
+                if (e.key === 'Escape') {
+                    closeModal();
+                    document.removeEventListener('keydown', handleKeyDown);
+                }
+            };
+            document.addEventListener('keydown', handleKeyDown);
+
+            // 加载模型列表的函数
+            const loadModels = async (provider, apiKey, type) => {
+                const loadingEl = modal.querySelector(`.${type}-models-loading`);
+                const inputWrapper = modal.querySelector(`.${type}-model-autocomplete-wrapper`);
+                const inputEl = modal.querySelector(`.${type}-model-input`);
+                const datalistEl = modal.querySelector(`.${type}-model-datalist`);
+                const emptyEl = modal.querySelector(`.${type}-models-empty`);
+
+                if (!provider || !apiKey) {
+                    loadingEl.style.display = 'none';
+                    if (inputWrapper) inputWrapper.style.display = 'none';
+                    emptyEl.style.display = 'block';
+                    return;
+                }
+
+                loadingEl.style.display = 'block';
+                if (inputWrapper) inputWrapper.style.display = 'none';
+                emptyEl.style.display = 'none';
+
+                try {
+                    const providerConfig = providers[provider];
+                    if (!providerConfig) {
+                        throw new Error('Invalid provider');
+                    }
+
+                    // 根据不同的提供商调用不同的API获取模型列表
+                    let models = [];
+                    
+                    if (provider === 'siliconflow') {
+                        // 硅基流动：调用模型列表API
+                        const response = await fetch('https://api.siliconflow.cn/v1/models', {
+                            headers: {
+                                'Authorization': `Bearer ${apiKey}`
+                            }
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            models = (data.data || []).map(m => ({ id: m.id, name: m.id }));
+                        }
+                    } else if (provider === 'zhipu') {
+                        // 智谱：已知模型列表（API可能不返回所有模型，所以添加已知模型作为补充）
+                        const knownZhipuModels = {
+                            llm: [
+                                { id: 'glm-4', name: 'GLM-4' },
+                                { id: 'glm-4-plus', name: 'GLM-4 Plus' },
+                                { id: 'glm-4-air', name: 'GLM-4 Air' },
+                                { id: 'glm-4-airx', name: 'GLM-4 AirX' },
+                                { id: 'glm-4-flash', name: 'GLM-4 Flash' },
+                                { id: 'glm-4.5', name: 'GLM-4.5' },
+                                { id: 'glm-4.5-air', name: 'GLM-4.5 Air' },
+                                { id: 'glm-4.6', name: 'GLM-4.6' },
+                            ],
+                            vision: [
+                                { id: 'glm-4v', name: 'GLM-4V' },
+                                { id: 'glm-4v-flash', name: 'GLM-4V-Flash' },
+                                { id: 'glm-4.1v-thinking-flash', name: 'GLM-4.1V-Thinking-Flash' },
+                                { id: 'glm-4.5v', name: 'GLM-4.5V' },
+                            ]
+                        };
+                        
+                        // 调用模型列表API获取实际可用的模型
+                        let apiModels = [];
+                        try {
+                            const response = await fetch('https://open.bigmodel.cn/api/paas/v4/models', {
+                                headers: {
+                                    'Authorization': `Bearer ${apiKey}`
+                                }
+                            });
+                            if (response.ok) {
+                                const data = await response.json();
+                                apiModels = (data.data || []).map(m => {
+                                    const modelId = (m.id || '').toLowerCase();
+                                    const modelType = (m.type || '').toLowerCase();
+                                    
+                                    // 判断是否为视觉模型
+                                    const isVision = modelId.includes('v') || 
+                                                   modelId.includes('vision') || 
+                                                   modelType === 'multimodal' || 
+                                                   modelType === 'vision';
+                                    
+                                    return {
+                                        id: m.id,
+                                        name: m.name || m.id,
+                                        isVision: isVision,
+                                        isLLM: !isVision
+                                    };
+                                });
+                            }
+                        } catch (error) {
+                            console.warn('🐝 Hive: Failed to fetch Zhipu models from API:', error);
+                        }
+                        
+                        // 合并API返回的模型和已知模型列表（去重）
+                        const modelMap = new Map();
+                        
+                        // 先添加API返回的模型
+                        apiModels.forEach(m => {
+                            modelMap.set(m.id.toLowerCase(), { id: m.id, name: m.name, isVision: m.isVision, isLLM: m.isLLM });
+                        });
+                        
+                        // 再添加已知模型（如果API没有返回）
+                        const knownModels = type === 'vision' ? knownZhipuModels.vision : knownZhipuModels.llm;
+                        knownModels.forEach(m => {
+                            const key = m.id.toLowerCase();
+                            if (!modelMap.has(key)) {
+                                modelMap.set(key, {
+                                    id: m.id,
+                                    name: m.name,
+                                    isVision: type === 'vision',
+                                    isLLM: type === 'llm'
+                                });
+                            }
+                        });
+                        
+                        // 转换为数组并根据type过滤
+                        let allModels = Array.from(modelMap.values());
+                        
+                        if (type === 'vision') {
+                            // 视觉模型：只显示多模态/视觉模型
+                            models = allModels.filter(m => m.isVision).map(m => ({ id: m.id, name: m.name }));
+                        } else if (type === 'llm') {
+                            // LLM模型：只显示文本模型
+                            models = allModels.filter(m => m.isLLM).map(m => ({ id: m.id, name: m.name }));
+                        } else {
+                            // 如果type未指定，返回所有模型
+                            models = allModels.map(m => ({ id: m.id, name: m.name }));
+                        }
+                    } else if (provider === 'ai302') {
+                        // 302.AI：调用模型列表API
+                        const response = await fetch('https://api.302.ai/v1/models', {
+                            headers: {
+                                'Authorization': `Bearer ${apiKey}`
+                            }
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            models = (data.data || []).map(m => ({ id: m.id, name: m.id }));
+                        }
+                    } else if (provider === 'openrouter') {
+                        // OpenRouter：调用模型列表API
+                        const response = await fetch('https://openrouter.ai/api/v1/models', {
+                            headers: {
+                                'Authorization': `Bearer ${apiKey}`
+                            }
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            // OpenRouter返回格式：{ data: [{ id: "model-id", name: "Model Name", ... }] }
+                            models = (data.data || []).map(m => ({ 
+                                id: m.id, 
+                                name: m.name || m.id 
+                            }));
+                        }
+                    }
+
+                    // 更新datalist（用于autocomplete）
+                    if (datalistEl) {
+                        datalistEl.innerHTML = '';
+                        models.forEach(model => {
+                            const option = document.createElement('option');
+                            option.value = model.id;
+                            option.textContent = model.name || model.id;
+                            datalistEl.appendChild(option);
+                        });
+                    }
+
+                    // 设置当前值
+                    if (inputEl) {
+                        const currentModel = type === 'llm' ? llmModel : visionModel;
+                        if (currentModel) {
+                            inputEl.value = currentModel;
+                        }
+                    }
+
+                    loadingEl.style.display = 'none';
+                    if (models.length > 0 && inputWrapper) {
+                        inputWrapper.style.display = 'block';
+                        emptyEl.style.display = 'none';
+                    } else {
+                        if (inputWrapper) inputWrapper.style.display = 'none';
+                        emptyEl.style.display = 'block';
+                    }
+                } catch (error) {
+                    console.error(`🐝 Hive: Error loading ${type} models:`, error);
+                    loadingEl.style.display = 'none';
+                    if (inputWrapper) inputWrapper.style.display = 'none';
+                    emptyEl.style.display = 'block';
+                    emptyEl.textContent = tt('settings.noModels') + ' (' + error.message + ')';
+                }
+            };
+
+            // 大语言模型提供商选择
+            const llmProviderSelect = modal.querySelector('.llm-provider-select');
+            const llmApiKeyInput = modal.querySelector('.llm-api-key-input');
+            const llmApiUrlInput = modal.querySelector('.llm-api-url-input');
+            const llmApiUrlGroup = modal.querySelector('.llm-api-url-group');
+            
+            // 跟踪用户是否手动修改过API地址
+            const originalLlmApiUrl = llmApiUrl;
+            // 如果用户配置过自定义地址（且不是当前提供商的默认值），标记为已修改
+            let llmApiUrlUserModified = false;
+            if (originalLlmApiUrl) {
+                const currentProvider = llmProviderSelect.value;
+                if (currentProvider && providers[currentProvider] && originalLlmApiUrl !== providers[currentProvider].apiUrl) {
+                    llmApiUrlUserModified = true;
+                }
+            }
+            
+            // 更新API地址显示
+            const updateLLMApiUrl = () => {
+                const provider = llmProviderSelect.value;
+                const llmApiKeyLink = modal.querySelector('.llm-api-key-link');
+                if (provider && providers[provider]) {
+                    // 如果用户配置过自定义地址（且不是当前提供商的默认值），显示配置过的
+                    if (llmApiUrlUserModified && originalLlmApiUrl && originalLlmApiUrl !== providers[provider].apiUrl) {
+                        llmApiUrlInput.value = originalLlmApiUrl;
+                    } else {
+                        // 如果没有用户配置，显示对应提供商的默认地址
+                        llmApiUrlInput.value = providers[provider].apiUrl;
+                        // 如果用户配置的地址就是当前提供商的默认值，不标记为已修改
+                        if (originalLlmApiUrl === providers[provider].apiUrl) {
+                            llmApiUrlUserModified = false;
+                        }
+                    }
+                    llmApiUrlGroup.style.display = 'block';
+                    // 更新API Key申请链接
+                    if (llmApiKeyLink && providers[provider].apiKeyUrl) {
+                        llmApiKeyLink.href = providers[provider].apiKeyUrl;
+                        llmApiKeyLink.style.display = 'inline-block';
+                    }
+                } else {
+                    llmApiUrlGroup.style.display = 'none';
+                    // 隐藏API Key申请链接
+                    if (llmApiKeyLink) {
+                        llmApiKeyLink.style.display = 'none';
+                    }
+                }
+            };
+            
+            // 监听用户手动修改API地址
+            llmApiUrlInput.addEventListener('input', () => {
+                llmApiUrlUserModified = true;
+            });
+            
+            const updateLLMModels = () => {
+                const provider = llmProviderSelect.value;
+                const apiKey = llmApiKeyInput.value.trim();
+                loadModels(provider, apiKey, 'llm');
+            };
+
+            // 切换提供商时，更新API地址和模型列表
+            llmProviderSelect.onchange = () => {
+                const provider = llmProviderSelect.value;
+                // 无论用户是否修改过，切换提供商时都恢复成对应提供商的默认地址
+                if (provider && providers[provider]) {
+                    llmApiUrlInput.value = providers[provider].apiUrl;
+                    llmApiUrlUserModified = false; // 重置修改标记
+                }
+                updateLLMApiUrl();
+                updateLLMModels();
+            };
+            llmApiKeyInput.addEventListener('input', debounce(updateLLMModels, 500));
+            
+            // 初始化时更新API Key链接
+            updateLLMApiUrl();
+
+            // 视觉模型提供商选择
+            const visionProviderSelect = modal.querySelector('.vision-provider-select');
+            const visionApiKeyInput = modal.querySelector('.vision-api-key-input');
+            const visionApiUrlInput = modal.querySelector('.vision-api-url-input');
+            const visionApiUrlGroup = modal.querySelector('.vision-api-url-group');
+            
+            // 跟踪用户是否手动修改过API地址
+            const originalVisionApiUrl = visionApiUrl;
+            // 如果用户配置过自定义地址（且不是当前提供商的默认值），标记为已修改
+            let visionApiUrlUserModified = false;
+            if (originalVisionApiUrl) {
+                const currentProvider = visionProviderSelect.value;
+                if (currentProvider && providers[currentProvider] && originalVisionApiUrl !== providers[currentProvider].apiUrl) {
+                    visionApiUrlUserModified = true;
+                }
+            }
+            
+            // 更新API地址显示
+            const updateVisionApiUrl = () => {
+                const provider = visionProviderSelect.value;
+                const visionApiKeyLink = modal.querySelector('.vision-api-key-link');
+                if (provider && providers[provider]) {
+                    // 如果用户配置过自定义地址（且不是当前提供商的默认值），显示配置过的
+                    if (visionApiUrlUserModified && originalVisionApiUrl && originalVisionApiUrl !== providers[provider].apiUrl) {
+                        visionApiUrlInput.value = originalVisionApiUrl;
+                    } else {
+                        // 如果没有用户配置，显示对应提供商的默认地址
+                        visionApiUrlInput.value = providers[provider].apiUrl;
+                        // 如果用户配置的地址就是当前提供商的默认值，不标记为已修改
+                        if (originalVisionApiUrl === providers[provider].apiUrl) {
+                            visionApiUrlUserModified = false;
+                        }
+                    }
+                    visionApiUrlGroup.style.display = 'block';
+                    // 更新API Key申请链接
+                    if (visionApiKeyLink && providers[provider].apiKeyUrl) {
+                        visionApiKeyLink.href = providers[provider].apiKeyUrl;
+                        visionApiKeyLink.style.display = 'inline-block';
+                    }
+                } else {
+                    visionApiUrlGroup.style.display = 'none';
+                    // 隐藏API Key申请链接
+                    if (visionApiKeyLink) {
+                        visionApiKeyLink.style.display = 'none';
+                    }
+                }
+            };
+            
+            // 监听用户手动修改API地址
+            visionApiUrlInput.addEventListener('input', () => {
+                visionApiUrlUserModified = true;
+            });
+            
+            const updateVisionModels = () => {
+                const provider = visionProviderSelect.value;
+                const apiKey = visionApiKeyInput.value.trim();
+                loadModels(provider, apiKey, 'vision');
+            };
+
+            // 切换提供商时，更新API地址和模型列表
+            visionProviderSelect.onchange = () => {
+                const provider = visionProviderSelect.value;
+                // 无论用户是否修改过，切换提供商时都恢复成对应提供商的默认地址
+                if (provider && providers[provider]) {
+                    visionApiUrlInput.value = providers[provider].apiUrl;
+                    visionApiUrlUserModified = false; // 重置修改标记
+                }
+                updateVisionApiUrl();
+                updateVisionModels();
+            };
+            visionApiKeyInput.addEventListener('input', debounce(updateVisionModels, 500));
+            
+            // 初始化时更新API Key链接
+            updateVisionApiUrl();
+
+            // 保存配置
+            const saveBtn = modal.querySelector('.hive-llm-config-save-btn');
+            saveBtn.onclick = () => {
+                const llmProvider = llmProviderSelect.value;
+                const llmApiKey = llmApiKeyInput.value.trim();
+                const llmModelInput = modal.querySelector('.llm-model-input');
+                const llmModel = llmModelInput ? llmModelInput.value.trim() : '';
+                const llmApiUrl = llmApiUrlInput.value.trim() || (llmProvider ? providers[llmProvider]?.apiUrl : '');
+
+                const visionProvider = visionProviderSelect.value;
+                const visionApiKey = visionApiKeyInput.value.trim();
+                const visionModelInput = modal.querySelector('.vision-model-input');
+                const visionModel = visionModelInput ? visionModelInput.value.trim() : '';
+                const visionApiUrl = visionApiUrlInput.value.trim() || (visionProvider ? providers[visionProvider]?.apiUrl : '');
+
+                // 如果选择了"选择提供商"（空值），清空大语言模型配置
+                if (!llmProvider) {
+                    localStorage.removeItem('hive_llm_provider');
+                    localStorage.removeItem('hive_llm_api_key');
+                    localStorage.removeItem('hive_llm_api_url');
+                    localStorage.removeItem('hive_llm_model');
+                } else {
+                    // 保存到localStorage（允许api地址和api key为空）
+                    localStorage.setItem('hive_llm_provider', llmProvider);
+                    localStorage.setItem('hive_llm_api_key', llmApiKey);
+                    localStorage.setItem('hive_llm_api_url', llmApiUrl);
+                    localStorage.setItem('hive_llm_model', llmModel);
+                    
+                    // 兼容旧的配置方式
+                    localStorage.setItem('hive_llm_api_key', llmApiKey);
+                    localStorage.setItem('hive_llm_api_url', llmApiUrl);
+                    localStorage.setItem('hive_llm_model', llmModel);
+                }
+
+                // 如果选择了"选择提供商"（空值），清空视觉模型配置
+                if (!visionProvider) {
+                    localStorage.removeItem('hive_vision_provider');
+                    localStorage.removeItem('hive_vision_api_key');
+                    localStorage.removeItem('hive_vision_api_url');
+                    localStorage.removeItem('hive_vision_model');
+                } else {
+                    // 保存到localStorage（允许api地址和api key为空）
+                    localStorage.setItem('hive_vision_provider', visionProvider);
+                    localStorage.setItem('hive_vision_api_key', visionApiKey);
+                    localStorage.setItem('hive_vision_api_url', visionApiUrl);
+                    localStorage.setItem('hive_vision_model', visionModel);
+                }
+
+                showToast(tt('settings.configSaved'), 'success');
+                closeModal();
+            };
+
+            // 为弹层添加文字选择支持
+            const setupModalCopySupport = (modalEl) => {
+                if (!modalEl) return;
+                
+                modalEl.style.webkitUserSelect = 'text';
+                modalEl.style.mozUserSelect = 'text';
+                modalEl.style.msUserSelect = 'text';
+                modalEl.style.userSelect = 'text';
+                
+                modalEl.addEventListener('pointerdown', function(e) {
+                    e.stopPropagation();
+                }, true);
+                modalEl.addEventListener('mousedown', function(e) {
+                    e.stopPropagation();
+                }, true);
+                modalEl.addEventListener('wheel', function(e) {
+                    e.stopPropagation();
+                }, true);
+                modalEl.addEventListener('contextmenu', function(e) {
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                }, true);
+                modalEl.addEventListener('selectstart', function(e) {
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                }, true);
+                modalEl.addEventListener('copy', function(e) {
+                    e.stopPropagation();
+                }, true);
+            };
+            
+            setupModalCopySupport(modal);
+
+            document.body.appendChild(modal);
+
+            // 初始化时显示API地址（如果已选择提供商）
+            setTimeout(() => {
+                updateLLMApiUrl();
+                updateVisionApiUrl();
+                
+                // 如果已有配置，自动加载模型列表
+                if (llmProvider && llmApiKey) {
+                    updateLLMModels();
+                }
+                if (visionProvider && visionApiKey) {
+                    updateVisionModels();
+                }
+            }, 100);
+        }
+
+        // 防抖函数
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
         }
 
         // 显示更新通知（非强制）
@@ -3696,19 +4579,44 @@ if (sendBtn && inputTextarea) {
                 return;
             }
 
-            const hasOpenModal = document.querySelector('#hive-lightbox, #hive-video-modal, #hive-model-detail, #hive-settings-modal, #hive-confirm-modal, #hive-node-install-modal, #hive-node-installer-guide-modal, #hive-model-downloader-guide-modal, #hive-feedback-modal, #hive-update-notification-modal, #hive-force-update-modal');
-
-            if (hasOpenModal) {
+            // 检查是否点击在侧边栏内
+            const isInsideSidebar = hiveSidebar && hiveSidebar.contains(e.target);
+            
+            // 如果点击在侧边栏内，不关闭
+            if (isInsideSidebar) {
+                return;
             }
 
-            const isInsideSidebar = hiveSidebar && hiveSidebar.contains(e.target);
+            // 检查是否点击在弹窗、菜单、灯箱内
+            const isInModal = e.target.closest('#hive-lightbox, #hive-video-modal, #hive-model-detail, #hive-settings-modal, #hive-confirm-modal, #hive-node-install-modal, #hive-node-installer-guide-modal, #hive-model-downloader-guide-modal, #hive-feedback-modal, #hive-llm-config-modal, #hive-update-notification-modal, #hive-force-update-modal, #hive-reverse-prompt-modal, #hive-random-prompt-modal, #hive-ai-chat-modal, #hive-expand-prompt-modal, #hive-translate-modal, #hive-config-prompt-modal, #hive-image-context-menu');
+            
+            // 如果点击在弹窗、菜单、灯箱内，不关闭
+            if (isInModal) {
+                return;
+            }
 
+            // 检查是否点击在ComfyUI的画布上
+            // 尝试多种可能的选择器
+            const graphCanvas = document.getElementById('graphcanvas') || 
+                               document.querySelector('.litegraph') ||
+                               document.querySelector('#graph') ||
+                               document.querySelector('.comfy-graph');
+            
+            // 如果找不到画布元素，检查是否点击在body上（排除侧边栏和弹窗区域）
+            let isInCanvas = false;
+            if (graphCanvas) {
+                isInCanvas = graphCanvas.contains(e.target);
+            } else {
+                // 如果找不到画布，检查是否点击在body上，且不在侧边栏和弹窗内
+                // 这作为后备方案
+                isInCanvas = e.target === document.body || 
+                            e.target === document.documentElement ||
+                            !e.target.closest('#hive-sidebar, #hive-lightbox, #hive-video-modal, #hive-model-detail, #hive-settings-modal, #hive-confirm-modal, #hive-node-install-modal, #hive-node-installer-guide-modal, #hive-model-downloader-guide-modal, #hive-feedback-modal, #hive-llm-config-modal, #hive-update-notification-modal, #hive-force-update-modal, #hive-reverse-prompt-modal, #hive-random-prompt-modal, #hive-ai-chat-modal, #hive-expand-prompt-modal, #hive-translate-modal, #hive-config-prompt-modal, #hive-image-context-menu');
+            }
 
-            if (!isInsideSidebar && hiveSidebar && hiveSidebar.classList.contains('open')) {
-                if (!hasOpenModal) {
-                    hiveSidebar.classList.remove('open');
-                } else {
-                }
+            // 如果侧边栏是打开的，且点击在画布上，则关闭侧边栏
+            if (hiveSidebar && hiveSidebar.classList.contains('open') && isInCanvas) {
+                hiveSidebar.classList.remove('open');
             }
         }, { capture: true });
 
@@ -3722,10 +4630,3434 @@ if (sendBtn && inputTextarea) {
                 await initMissingItemsEnhancer();
                 console.log('🐝 Hive: Missing items enhancer initialized');
                 console.log('🐝 Hive: Debug commands: window.hiveMissingItemsEnhancer.checkNow() or .reset()');
+                
+                // 在初始化完成后注册节点右键菜单
+                registerNodeContextMenu();
             } catch (error) {
                 console.error('🐝 Hive: Failed to initialize missing items enhancer:', error);
+                // 即使初始化失败，也尝试注册右键菜单（可能 searchNodeByClassMapping 已经可用）
+                setTimeout(() => registerNodeContextMenu(), 500);
             }
         }, 500);
+
+        // 生成随机提示词的函数（调用AI API）
+        async function generateRandomPrompt() {
+            try {
+                // 获取当前语言设置
+                const currentLang = getCurrentLanguage();
+                const isZh = currentLang === 'zh';
+                
+                let systemPrompt, userPrompt;
+                
+                if (isZh) {
+                    // 中文用户：生成中英文提示词
+                    // 优化prompt，要求更简洁，减少输出长度
+                    systemPrompt = `你是专业的AI图像生成提示词工程师。生成详细、创意的图像提示词，同时提供英文和中文版本。
+
+要求：
+- 英文提示词：100-150个单词（不要超过），包含视觉细节（构图、光线、风格、情绪、艺术元素），适合Stable Diffusion
+- 中文提示词：与英文对应，保持相同创意和细节
+- 专注于视觉美学
+
+严格按JSON格式返回，不要有任何其他文字、解释或推理过程：
+{
+  "english": "英文提示词",
+  "chinese": "中文提示词"
+}
+
+只返回JSON对象，不要有任何前缀、后缀或其他文本。`;
+                    
+                    // 随机决定是否包含人物（70%概率包含人物）
+                    const includeCharacter = Math.random() < 0.7;
+                    if (includeCharacter) {
+                        userPrompt = `生成一个随机、创意且详细的AI图像生成提示词，必须包含人物（可以是人物肖像、人物场景、人物与环境的互动等）。让它独特且富有启发性。只返回JSON对象，不要有任何其他文字。`;
+                    } else {
+                        userPrompt = `生成一个随机、创意且详细的AI图像生成提示词，不包含人物（可以是风景、建筑、物品、抽象艺术等）。让它独特且富有启发性。只返回JSON对象，不要有任何其他文字。`;
+                    }
+                } else {
+                    // 英文用户：只生成英文提示词
+                    systemPrompt = `You are a professional prompt engineer for AI image generation. Generate a detailed, creative, and high-quality prompt in English for image generation. The prompt should be:
+- 100-200 words long
+- Rich in visual details, including composition, lighting, style, mood, and artistic elements
+- Suitable for AI image generation models like Stable Diffusion
+- Professional and well-structured
+- Focus on visual aesthetics and artistic quality
+
+Generate only the prompt text, without any explanations or additional text.`;
+
+                    // 随机决定是否包含人物（70%概率包含人物）
+                    const includeCharacter = Math.random() < 0.7;
+                    if (includeCharacter) {
+                        userPrompt = `Generate a random, creative, and detailed prompt for AI image generation that must include characters (portraits, character scenes, character-environment interactions, etc.). Make it unique and inspiring.`;
+                    } else {
+                        userPrompt = `Generate a random, creative, and detailed prompt for AI image generation without characters (landscapes, architecture, objects, abstract art, etc.). Make it unique and inspiring.`;
+                    }
+                }
+
+                // 尝试从localStorage获取API配置（优先使用新配置方式）
+                let apiKey = localStorage.getItem('hive_llm_api_key') || '';
+                let apiUrl = localStorage.getItem('hive_llm_api_url') || '';
+                let model = localStorage.getItem('hive_llm_model') || '';
+                const provider = localStorage.getItem('hive_llm_provider') || '';
+
+                // 如果没有配置，提示用户去设置界面配置
+                if (!apiKey || !apiUrl) {
+                    const errorMsg = getText('settings.pleaseConfigureLLM', 
+                        '请先在设置界面配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 选择提供商并填写API Key\n4. 选择模型后保存配置');
+                    throw new Error(errorMsg);
+                }
+
+                // 如果使用新配置方式，根据provider设置apiUrl
+                if (provider && !apiUrl) {
+                    const providers = {
+                        siliconflow: 'https://api.siliconflow.cn/v1/chat/completions',
+                        zhipu: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+                        ai302: 'https://api.302.ai/v1/chat/completions',
+                        openrouter: 'https://openrouter.ai/api/v1/chat/completions'
+                    };
+                    if (providers[provider]) {
+                        apiUrl = providers[provider];
+                    }
+                }
+
+                // 构建请求头
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                };
+
+                // 根据不同的提供商构建请求体
+                let requestBody = {
+                    model: model,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ]
+                };
+
+                // 所有提供商统一使用相同的参数
+                requestBody = {
+                    model: model,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 2000,
+                    top_p: 0.9
+                };
+                
+                // 智谱AI特殊处理：添加thinking参数
+                if (provider === 'zhipu' || apiUrl.includes('bigmodel.cn')) {
+                    requestBody.thinking = {
+                        type: "disabled"  // 禁用推理模式，只返回最终结果（GLM-4.5及以上版本支持）
+                    };
+                } else {
+                    // 其他提供商也添加thinking参数（如果支持）
+                    requestBody.thinking = {
+                        type: "disabled"
+                    };
+                }
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    // 获取详细的错误信息
+                    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    try {
+                        const errorText = await response.clone().text();
+                        if (errorText) {
+                            try {
+                                const errorData = JSON.parse(errorText);
+                                if (errorData.error) {
+                                    if (typeof errorData.error === 'string') {
+                                        errorMessage = errorData.error;
+                                    } else if (errorData.error.message) {
+                                        errorMessage = errorData.error.message;
+                                    } else if (errorData.error.code) {
+                                        errorMessage = `错误代码: ${errorData.error.code}${errorData.error.message ? ', ' + errorData.error.message : ''}`;
+                                    }
+                                } else {
+                                    errorMessage = errorText.substring(0, 200); // 限制长度
+                                }
+                            } catch (e) {
+                                errorMessage = errorText.substring(0, 200); // 限制长度
+                            }
+                        }
+                    } catch (e) {
+                        // 如果无法读取错误响应，使用默认错误信息
+                    }
+                    
+                    // 根据状态码提供更详细的错误信息
+                    let detailedError = '';
+                    if (response.status === 401) {
+                        detailedError = 'API密钥无效或已过期。请检查API Key是否正确。';
+                    } else if (response.status === 403) {
+                        detailedError = 'API访问被拒绝。请检查API Key是否有权限访问该模型。';
+                    } else if (response.status === 429) {
+                        detailedError = 'API调用频率过高，已达到速率限制。请稍后再试。';
+                    } else if (response.status === 400) {
+                        detailedError = `请求参数错误: ${errorMessage}`;
+                    } else if (response.status >= 500) {
+                        detailedError = `服务器错误 (${response.status}): ${errorMessage}`;
+                    } else {
+                        detailedError = `API调用失败: ${errorMessage}`;
+                    }
+                    
+                    throw new Error(detailedError);
+                }
+
+                const data = await response.json();
+                // 优先使用 content 字段（如果存在且不为空）
+                let content = data.choices?.[0]?.message?.content?.trim();
+                const reasoningContent = data.choices?.[0]?.message?.reasoning_content?.trim();
+                const finishReason = data.choices?.[0]?.finish_reason;
+                
+                // 如果 content 为空，才尝试使用 reasoning_content
+                if (!content && reasoningContent) {
+                    content = reasoningContent;
+                }
+                
+                // 如果 finish_reason 是 "length"，说明内容被截断了
+                if (finishReason === 'length' && content) {
+                    console.warn('🐝 Hive: Response was truncated due to max_tokens limit. Content may be incomplete.');
+                }
+                
+                if (!content) {
+                    throw new Error('No prompt generated from API response');
+                }
+
+                // 解析返回的内容（使用函数开头已声明的 currentLang 和 isZh）
+                if (isZh) {
+                    // 中文用户：尝试解析JSON格式（中英文）
+                    // 首先尝试直接解析整个内容
+                    try {
+                        const parsed = JSON.parse(content);
+                        if (parsed.english && parsed.chinese) {
+                            return {
+                                english: parsed.english,
+                                chinese: parsed.chinese
+                            };
+                        }
+                    } catch (e) {
+                        // 如果不是纯JSON，尝试从文本中提取JSON部分
+                        // 查找JSON格式的内容（可能包含在推理过程中）
+                        // 使用更宽松的匹配，允许JSON被截断
+                        const jsonMatch = content.match(/\{[\s\S]*?"english"\s*:\s*"([^"]+)"[\s\S]*?"chinese"\s*:\s*"([^"]+)"[\s\S]*?\}/);
+                        if (jsonMatch) {
+                            try {
+                                // 尝试修复可能被截断的JSON
+                                let jsonStr = jsonMatch[0];
+                                // 如果JSON被截断，尝试补全
+                                if (!jsonStr.endsWith('}')) {
+                                    // 查找最后一个完整的字段
+                                    const lastQuote = jsonStr.lastIndexOf('"');
+                                    if (lastQuote > 0) {
+                                        jsonStr = jsonStr.substring(0, lastQuote + 1) + '}';
+                                    }
+                                }
+                                const parsed = JSON.parse(jsonStr);
+                                if (parsed.english && parsed.chinese) {
+                                    return {
+                                        english: parsed.english,
+                                        chinese: parsed.chinese
+                                    };
+                                }
+                            } catch (e2) {
+                                // 如果JSON解析失败，尝试直接提取字段值
+                                const englishMatch = jsonMatch[0].match(/"english"\s*:\s*"([^"]+)"/);
+                                const chineseMatch = jsonMatch[0].match(/"chinese"\s*:\s*"([^"]+)"/);
+                                if (englishMatch && chineseMatch) {
+                                    return {
+                                        english: englishMatch[1],
+                                        chinese: chineseMatch[1]
+                                    };
+                                }
+                                console.warn('🐝 Hive: Failed to parse extracted JSON:', e2);
+                            }
+                        }
+                        
+                        // 如果还是无法解析JSON，尝试从文本中提取英文和中文提示词
+                        // 优先查找JSON格式的字段
+                        let englishMatch = content.match(/"english"\s*:\s*"([^"]+)"/);
+                        let chineseMatch = content.match(/"chinese"\s*:\s*"([^"]+)"/);
+                        
+                        // 如果没找到JSON格式，尝试查找标记后的内容
+                        // 支持两种格式：1) 引号中的内容  2) 直接跟在冒号后面的内容（直到下一个标记或文本结束）
+                        if (!englishMatch) {
+                            // 先尝试引号格式
+                            englishMatch = content.match(/(?:英文提示词|English Prompt)[:：]\s*["""]([^"""]{50,})["""]/);
+                            // 如果没找到引号格式，尝试直接提取冒号后的内容
+                            if (!englishMatch) {
+                                const englishStart = content.search(/(?:英文提示词|English Prompt)[:：]\s*/);
+                                if (englishStart >= 0) {
+                                    const afterColon = content.substring(englishStart);
+                                    // 查找下一个标记（中文提示词）或文本结束
+                                    const nextMarker = afterColon.search(/(?:中文提示词|Chinese Prompt)[:：]|$/);
+                                    if (nextMarker > 0) {
+                                        let englishText = afterColon.substring(afterColon.indexOf(':') + 1, nextMarker).trim();
+                                        // 移除可能的引号
+                                        englishText = englishText.replace(/^["""]|["""]$/g, '').trim();
+                                        if (englishText.length > 50) {
+                                            englishMatch = [null, englishText];
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (!chineseMatch) {
+                            // 先尝试引号格式
+                            chineseMatch = content.match(/(?:中文提示词|Chinese Prompt)[:：]\s*["""]([^"""]{50,})["""]/);
+                            // 如果没找到引号格式，尝试直接提取冒号后的内容
+                            if (!chineseMatch) {
+                                const chineseStart = content.search(/(?:中文提示词|Chinese Prompt)[:：]\s*/);
+                                if (chineseStart >= 0) {
+                                    const afterColon = content.substring(chineseStart);
+                                    // 提取到文本结束（因为中文提示词通常在最后）
+                                    let chineseText = afterColon.substring(afterColon.indexOf(':') + 1).trim();
+                                    // 移除可能的引号
+                                    chineseText = chineseText.replace(/^["""]|["""]$/g, '').trim();
+                                    if (chineseText.length > 20) { // 中文可能被截断，降低最小长度要求
+                                        chineseMatch = [null, chineseText];
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // 如果还是没找到，尝试查找最长的引号内容（可能是提示词）
+                        if (!englishMatch || !chineseMatch) {
+                            // 查找所有长引号内容
+                            const allQuoted = content.match(/"([^"]{100,})"/g);
+                            if (allQuoted && allQuoted.length >= 2) {
+                                // 取最长的两个作为英文和中文提示词
+                                const sorted = allQuoted.map(q => q.slice(1, -1)).sort((a, b) => b.length - a.length);
+                                if (sorted.length >= 2) {
+                                    return {
+                                        english: sorted[0],
+                                        chinese: sorted[1]
+                                    };
+                                }
+                            }
+                        }
+                        
+                        if (englishMatch && chineseMatch) {
+                            const english = (englishMatch[1] || '').trim();
+                            const chinese = (chineseMatch[1] || '').trim();
+                            // 降低中文的最小长度要求，因为可能被截断
+                            if (english && english.length > 50) {
+                                return {
+                                    english: english,
+                                    chinese: chinese && chinese.length > 20 ? chinese : null
+                                };
+                            }
+                        }
+                        
+                        console.warn('🐝 Hive: Failed to parse JSON response, using content as English prompt');
+                    }
+                }
+                
+                // 英文用户或解析失败：返回纯文本（英文提示词）
+                return {
+                    english: content,
+                    chinese: null
+                };
+            } catch (error) {
+                console.error('🐝 Hive: Error generating random prompt:', error);
+                throw error;
+            }
+        }
+
+        // 显示随机提示词弹层
+        async function showRandomPromptModal() {
+            // 移除现有的弹层
+            const existingModal = document.getElementById('hive-random-prompt-modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            const getText = (key, fallback = '') => {
+                if (typeof window !== 'undefined' && typeof window.t === 'function') {
+                    return window.t(key);
+                }
+                return fallback;
+            };
+
+            const randomPromptText = getText('contextMenu.randomPrompt', '随机提示词');
+            const generatingText = getText('contextMenu.generatingPrompt', '正在生成提示词...');
+            const copyPromptText = getText('contextMenu.copyPrompt', '复制提示词');
+            const promptCopiedText = getText('contextMenu.promptCopied', '提示词已复制到剪贴板');
+            const generatePromptFailedText = getText('contextMenu.generatePromptFailed', '生成提示词失败：');
+            const closeText = getText('common.close', '关闭');
+
+            // 创建弹层
+            const modal = document.createElement('div');
+            modal.id = 'hive-random-prompt-modal';
+            modal.innerHTML = `
+                <div class="hive-confirm-overlay" style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.7);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                ">
+                    <div class="hive-confirm-content" style="
+                        background-color: var(--comfy-menu-bg);
+                        border-radius: 8px;
+                        padding: 24px;
+                        max-width: 700px;
+                        width: 90%;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                    ">
+                        <div style="
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-bottom: 20px;
+                            padding-bottom: 12px;
+                            border-bottom: 1px solid var(--border-color);
+                        ">
+                            <h3 style="
+                                margin: 0;
+                                color: var(--input-text);
+                                font-size: 18px;
+                            ">🐝 ${randomPromptText}</h3>
+                            <button class="hive-random-prompt-close" style="
+                                background: none;
+                                border: none;
+                                color: var(--input-text);
+                                font-size: 24px;
+                                cursor: pointer;
+                                padding: 0;
+                                width: 30px;
+                                height: 30px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            ">×</button>
+                        </div>
+                        <div class="hive-random-prompt-content" style="
+                            margin-bottom: 20px;
+                            min-height: 200px;
+                        ">
+                            <div class="hive-random-prompt-loading" style="
+                                text-align: center;
+                                padding: 40px;
+                                color: var(--descrip-text);
+                            ">
+                                ${generatingText}
+                            </div>
+                        </div>
+                        <div style="
+                            display: flex;
+                            justify-content: flex-end;
+                            gap: 12px;
+                        ">
+                            <button class="hive-random-prompt-copy" style="
+                                padding: 8px 16px;
+                                border-radius: 4px;
+                                border: none;
+                                background-color: #ffe066;
+                                color: #000;
+                                cursor: pointer;
+                                font-weight: 500;
+                                font-size: 14px;
+                                display: none;
+                            ">${copyPromptText}</button>
+                            <button class="hive-random-prompt-close-btn" style="
+                                padding: 8px 16px;
+                                border-radius: 4px;
+                                border: none;
+                                background-color: var(--comfy-input-bg);
+                                color: var(--input-text);
+                                cursor: pointer;
+                                font-weight: 500;
+                                font-size: 14px;
+                            ">${closeText}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const closeBtn = modal.querySelector('.hive-random-prompt-close');
+            const closeBtn2 = modal.querySelector('.hive-random-prompt-close-btn');
+            const copyBtn = modal.querySelector('.hive-random-prompt-copy');
+            const overlay = modal.querySelector('.hive-confirm-overlay');
+            const contentDiv = modal.querySelector('.hive-random-prompt-content');
+            const loadingDiv = modal.querySelector('.hive-random-prompt-loading');
+
+            let generatedPrompt = null; // 改为对象：{english: string, chinese: string | null}
+
+            const cleanup = () => {
+                modal.remove();
+            };
+
+            // 关闭按钮
+            closeBtn.onclick = cleanup;
+            closeBtn2.onclick = cleanup;
+
+            // 点击遮罩层关闭
+            overlay.onclick = (e) => {
+                if (e.target === overlay) {
+                    cleanup();
+                }
+            };
+
+            // 设置复制按钮（根据语言显示不同的复制按钮）
+            const setupCopyButtons = (promptData) => {
+                const currentLang = getCurrentLanguage();
+                const isZh = currentLang === 'zh';
+                
+                // 清空现有的复制按钮区域
+                const buttonContainer = modal.querySelector('.hive-random-prompt-close-btn').parentElement;
+                buttonContainer.innerHTML = '';
+                
+                if (isZh && promptData.chinese) {
+                    // 中文用户且有中文提示词：显示两个复制按钮
+                    const copyEnglishBtn = document.createElement('button');
+                    copyEnglishBtn.className = 'hive-random-prompt-copy-english';
+                    copyEnglishBtn.textContent = getText('contextMenu.copyEnglishPrompt', '复制英文提示词');
+                    copyEnglishBtn.style.cssText = `
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        border: none;
+                        background-color: #ffe066;
+                        color: #000;
+                        cursor: pointer;
+                        font-weight: 500;
+                        font-size: 14px;
+                        margin-right: 8px;
+                    `;
+                    copyEnglishBtn.onclick = async () => {
+                        try {
+                            await navigator.clipboard.writeText(promptData.english);
+                            showToast(promptCopiedText, 'success');
+                        } catch (err) {
+                            console.error('🐝 Hive: Failed to copy English prompt:', err);
+                            showToast(getText('common.copyFailed', '复制失败，请手动复制'), 'error');
+                        }
+                    };
+                    
+                    const copyChineseBtn = document.createElement('button');
+                    copyChineseBtn.className = 'hive-random-prompt-copy-chinese';
+                    copyChineseBtn.textContent = getText('contextMenu.copyChinesePrompt', '复制中文提示词');
+                    copyChineseBtn.style.cssText = `
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        border: none;
+                        background-color: #ffe066;
+                        color: #000;
+                        cursor: pointer;
+                        font-weight: 500;
+                        font-size: 14px;
+                        margin-right: 8px;
+                    `;
+                    copyChineseBtn.onclick = async () => {
+                        try {
+                            await navigator.clipboard.writeText(promptData.chinese);
+                            showToast(promptCopiedText, 'success');
+                        } catch (err) {
+                            console.error('🐝 Hive: Failed to copy Chinese prompt:', err);
+                            showToast(getText('common.copyFailed', '复制失败，请手动复制'), 'error');
+                        }
+                    };
+                    
+                    buttonContainer.appendChild(copyEnglishBtn);
+                    buttonContainer.appendChild(copyChineseBtn);
+                } else {
+                    // 英文用户或只有英文提示词：显示一个复制按钮
+                    const singleCopyBtn = document.createElement('button');
+                    singleCopyBtn.className = 'hive-random-prompt-copy';
+                    singleCopyBtn.textContent = copyPromptText;
+                    singleCopyBtn.style.cssText = `
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        border: none;
+                        background-color: #ffe066;
+                        color: #000;
+                        cursor: pointer;
+                        font-weight: 500;
+                        font-size: 14px;
+                        margin-right: 8px;
+                    `;
+                    singleCopyBtn.onclick = async () => {
+                        try {
+                            await navigator.clipboard.writeText(promptData.english);
+                            showToast(promptCopiedText, 'success');
+                        } catch (err) {
+                            console.error('🐝 Hive: Failed to copy prompt:', err);
+                            showToast(getText('common.copyFailed', '复制失败，请手动复制'), 'error');
+                        }
+                    };
+                    
+                    buttonContainer.appendChild(singleCopyBtn);
+                }
+                
+                // 添加关闭按钮
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'hive-random-prompt-close-btn';
+                closeBtn.textContent = closeText;
+                closeBtn.style.cssText = `
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    border: none;
+                    background-color: var(--comfy-input-bg);
+                    color: var(--input-text);
+                    cursor: pointer;
+                    font-weight: 500;
+                    font-size: 14px;
+                `;
+                closeBtn.onclick = cleanup;
+                buttonContainer.appendChild(closeBtn);
+            };
+
+            // Esc键关闭
+            const handleKeyDown = (e) => {
+                if (e.key === 'Escape') {
+                    cleanup();
+                    document.removeEventListener('keydown', handleKeyDown);
+                }
+            };
+            document.addEventListener('keydown', handleKeyDown);
+
+            // 生成提示词
+            try {
+                generatedPrompt = await generateRandomPrompt();
+                
+                // 隐藏加载提示，显示生成的提示词
+                loadingDiv.style.display = 'none';
+                
+                const currentLang = getCurrentLanguage();
+                const isZh = currentLang === 'zh';
+                
+                if (isZh && generatedPrompt.chinese) {
+                    // 中文用户且有中文提示词：显示两个提示词框
+                    contentDiv.innerHTML = `
+                        <div style="margin-bottom: 16px;">
+                            <div style="
+                                margin-bottom: 8px;
+                                color: var(--input-text);
+                                font-weight: 500;
+                                font-size: 14px;
+                            ">${getText('contextMenu.englishPrompt', '英文提示词')}</div>
+                            <div style="
+                                padding: 16px;
+                                background-color: var(--comfy-input-bg);
+                                border-radius: 4px;
+                                border: 1px solid var(--border-color);
+                                color: var(--input-text);
+                                font-size: 14px;
+                                line-height: 1.6;
+                                white-space: pre-wrap;
+                                word-wrap: break-word;
+                            ">${generatedPrompt.english}</div>
+                        </div>
+                        <div>
+                            <div style="
+                                margin-bottom: 8px;
+                                color: var(--input-text);
+                                font-weight: 500;
+                                font-size: 14px;
+                            ">${getText('contextMenu.chinesePrompt', '中文提示词')}</div>
+                            <div style="
+                                padding: 16px;
+                                background-color: var(--comfy-input-bg);
+                                border-radius: 4px;
+                                border: 1px solid var(--border-color);
+                                color: var(--input-text);
+                                font-size: 14px;
+                                line-height: 1.6;
+                                white-space: pre-wrap;
+                                word-wrap: break-word;
+                            ">${generatedPrompt.chinese}</div>
+                        </div>
+                    `;
+                } else {
+                    // 英文用户或只有英文提示词：只显示英文提示词
+                    contentDiv.innerHTML = `
+                        <div style="
+                            padding: 16px;
+                            background-color: var(--comfy-input-bg);
+                            border-radius: 4px;
+                            border: 1px solid var(--border-color);
+                            color: var(--input-text);
+                            font-size: 14px;
+                            line-height: 1.6;
+                            white-space: pre-wrap;
+                            word-wrap: break-word;
+                        ">${generatedPrompt.english}</div>
+                    `;
+                }
+                
+                // 设置复制按钮
+                setupCopyButtons(generatedPrompt);
+            } catch (error) {
+                console.error('🐝 Hive: Error generating prompt:', error);
+                // 显示详细的错误信息
+                let errorMessage = error.message || '未知错误';
+                // 如果是API未配置的错误，显示配置提示
+                if (errorMessage.includes('请先在设置界面配置') || errorMessage.includes('API未配置')) {
+                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
+                        '请先在设置界面配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 选择提供商并填写API Key\n4. 选择模型后保存配置');
+                    loadingDiv.innerHTML = `
+                        <div style="
+                            color: var(--descrip-text);
+                            text-align: center;
+                        ">
+                            <div style="margin-bottom: 12px; color: var(--input-text); font-weight: 500;">${generatePromptFailedText}</div>
+                            <div style="font-size: 14px; line-height: 1.6; white-space: pre-line; color: var(--descrip-text);">${pleaseConfigureText}</div>
+                        </div>
+                    `;
+                } else {
+                    // 显示详细的错误信息
+                    const tryChangeModelText = getText('settings.tryChangeModel', '如果问题持续，您可以尝试更换模型后再试');
+                    loadingDiv.innerHTML = `
+                        <div style="
+                            color: var(--descrip-text);
+                            text-align: center;
+                        ">
+                            <div style="margin-bottom: 12px; color: var(--input-text); font-weight: 500;">${generatePromptFailedText}</div>
+                            <div style="font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; color: var(--descrip-text); padding: 12px; background-color: var(--comfy-input-bg); border-radius: 4px; border: 1px solid var(--border-color); margin-bottom: 12px;">${errorMessage}</div>
+                            <div style="font-size: 13px; line-height: 1.6; color: var(--descrip-text); padding: 8px 12px; background-color: var(--comfy-menu-bg); border-radius: 4px; border: 1px solid var(--border-color);">💡 ${tryChangeModelText}</div>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // 提示词反推功能：使用视觉模型分析图片并生成提示词
+        async function generateReversePrompt(imageUrl) {
+            try {
+                // 获取视觉模型配置
+                const visionProvider = localStorage.getItem('hive_vision_provider') || '';
+                const visionApiKey = localStorage.getItem('hive_vision_api_key') || '';
+                const visionApiUrl = localStorage.getItem('hive_vision_api_url') || '';
+                const visionModel = localStorage.getItem('hive_vision_model') || '';
+
+                // 如果没有配置，提示用户去设置界面配置
+                if (!visionApiKey || !visionApiUrl || !visionModel) {
+                    const errorMsg = getText('settings.pleaseConfigureVision', 
+                        '请配置视觉模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"视觉模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                    throw new Error(errorMsg);
+                }
+
+                // 获取当前语言设置
+                const currentLang = getCurrentLanguage();
+                const isZh = currentLang === 'zh';
+
+                // 构建提示词（参考随机提示词的规则）
+                let systemPrompt, userPrompt;
+                if (isZh) {
+                    // 中文用户：生成中英文提示词（JSON格式）
+                    systemPrompt = `你是专业的AI图像分析专家。请仔细分析用户提供的图片，只描述图片内容，生成一个详细、准确、专业的图像生成提示词。需要同时提供英文和中文两个版本。
+
+要求：
+- 英文提示词：100-200个单词，详细描述图片中的所有视觉元素（人物、物体、场景、构图、光线、风格、情绪、艺术元素等），适合Stable Diffusion等AI图像生成模型
+- 中文提示词：与英文版本对应，保持相同的详细描述
+- 必须准确反映图片的实际内容
+- 专业且结构良好
+- 专注于视觉细节和艺术质量
+- 只描述图片内容，不要有任何解释、分析或推理过程
+
+严格按JSON格式返回，不要有任何其他文字、解释或推理过程：
+{
+  "english": "英文提示词",
+  "chinese": "中文提示词"
+}
+
+只返回JSON对象，不要有任何前缀、后缀或其他文本。必须包含"english"和"chinese"两个字段。`;
+                    userPrompt = `请分析这张图片，生成详细的图像生成提示词。必须同时提供英文和中文两个版本，严格按照以下JSON格式返回：
+{
+  "english": "英文提示词内容",
+  "chinese": "中文提示词内容"
+}
+
+只返回JSON对象，不要有任何其他文字、解释或分析。`;
+                } else {
+                    // 英文用户：只生成英文提示词（纯文本）
+                    systemPrompt = `You are a professional AI image analysis expert. Please carefully analyze the user-provided image and generate a detailed, accurate, and professional image generation prompt in English. Only describe the image content, do not provide any explanations or analysis.
+
+Requirements:
+- 100-200 words long
+- Detailed description of all visual elements in the image (characters, objects, scenes, composition, lighting, style, mood, artistic elements, etc.)
+- Suitable for AI image generation models like Stable Diffusion
+- Must accurately reflect the actual content of the image
+- Professional and well-structured
+- Focus on visual details and artistic quality
+- Only describe the image content, do not provide any explanations, analysis, or reasoning
+
+Generate only the prompt text in English, without any explanations, additional text, or JSON format. Return the prompt as plain text.`;
+                    userPrompt = `Please only describe the content of this image and generate a detailed image generation prompt in English. Do not provide any explanations or analysis. Return only the prompt text.`;
+                }
+
+                // 将图片URL转换为base64（如果需要）
+                let imageData = imageUrl;
+                if (!imageUrl.startsWith('data:')) {
+                    // 如果不是base64，尝试获取图片并转换为base64
+                    try {
+                        const response = await fetch(imageUrl);
+                        const blob = await response.blob();
+                        const reader = new FileReader();
+                        imageData = await new Promise((resolve, reject) => {
+                            reader.onload = () => resolve(reader.result);
+                            reader.onerror = reject;
+                            reader.readAsDataURL(blob);
+                        });
+                    } catch (e) {
+                        console.warn('🐝 Hive: Failed to convert image to base64, using URL directly:', e);
+                    }
+                }
+
+                // 构建请求头
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${visionApiKey}`
+                };
+
+                // 根据不同的提供商构建请求体
+                let requestBody = {
+                    model: visionModel,
+                    messages: [
+                        {
+                            role: 'user',
+                            content: [
+                                { type: 'text', text: userPrompt },
+                                {
+                                    type: 'image_url',
+                                    image_url: {
+                                        url: imageData
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                };
+
+                // 所有提供商统一使用相同的参数（提示词反推不加thinking参数）
+                requestBody = {
+                    model: visionModel,
+                    messages: [
+                        {
+                            role: 'user',
+                            content: [
+                                { type: 'text', text: userPrompt },
+                                {
+                                    type: 'image_url',
+                                    image_url: {
+                                        url: imageData
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 2000,
+                    top_p: 0.9
+                };
+
+                const response = await fetch(visionApiUrl, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    // 获取详细的错误信息
+                    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    try {
+                        const errorText = await response.clone().text();
+                        if (errorText) {
+                            try {
+                                const errorData = JSON.parse(errorText);
+                                if (errorData.error) {
+                                    if (typeof errorData.error === 'string') {
+                                        errorMessage = errorData.error;
+                                    } else if (errorData.error.message) {
+                                        errorMessage = errorData.error.message;
+                                    } else if (errorData.error.code) {
+                                        errorMessage = `错误代码: ${errorData.error.code}${errorData.error.message ? ', ' + errorData.error.message : ''}`;
+                                    }
+                                } else {
+                                    errorMessage = errorText.substring(0, 200);
+                                }
+                            } catch (e) {
+                                errorMessage = errorText.substring(0, 200);
+                            }
+                        }
+                    } catch (e) {
+                        // 如果无法读取错误响应，使用默认错误信息
+                    }
+                    
+                    // 根据状态码提供更详细的错误信息
+                    let detailedError = '';
+                    if (response.status === 401) {
+                        detailedError = 'API密钥无效或已过期。请检查API Key是否正确。';
+                    } else if (response.status === 403) {
+                        detailedError = 'API访问被拒绝。请检查API Key是否有权限访问该模型。';
+                    } else if (response.status === 429) {
+                        detailedError = 'API调用频率过高，已达到速率限制。请稍后再试。';
+                    } else if (response.status === 400) {
+                        detailedError = `请求参数错误: ${errorMessage}`;
+                    } else if (response.status >= 500) {
+                        detailedError = `服务器错误 (${response.status}): ${errorMessage}`;
+                    } else {
+                        detailedError = `API调用失败: ${errorMessage}`;
+                    }
+                    
+                    throw new Error(detailedError);
+                }
+
+                const data = await response.json();
+                // 优先使用 content 字段
+                let content = data.choices?.[0]?.message?.content?.trim();
+                const reasoningContent = data.choices?.[0]?.message?.reasoning_content?.trim();
+                const finishReason = data.choices?.[0]?.finish_reason;
+                
+                // 如果 content 为空，才尝试使用 reasoning_content
+                if (!content && reasoningContent) {
+                    content = reasoningContent;
+                }
+                
+                // 如果 finish_reason 是 "length"，说明内容被截断了
+                if (finishReason === 'length' && content) {
+                    console.warn('🐝 Hive: Response was truncated due to max_tokens limit. Content may be incomplete.');
+                }
+                
+                if (!content) {
+                    throw new Error('No prompt generated from API response');
+                }
+
+                // 解析返回的内容
+                if (isZh) {
+                    // 中文用户：尝试解析JSON格式（中英文）
+                    try {
+                        const parsed = JSON.parse(content);
+                        if (parsed.english && parsed.chinese) {
+                            return {
+                                english: parsed.english,
+                                chinese: parsed.chinese
+                            };
+                        }
+                    } catch (e) {
+                        // 如果不是纯JSON，尝试从文本中提取JSON部分
+                        const jsonMatch = content.match(/\{[\s\S]*?"english"\s*:\s*"([^"]+)"[\s\S]*?"chinese"\s*:\s*"([^"]+)"[\s\S]*?\}/);
+                        if (jsonMatch) {
+                            try {
+                                let jsonStr = jsonMatch[0];
+                                if (!jsonStr.endsWith('}')) {
+                                    const lastQuote = jsonStr.lastIndexOf('"');
+                                    if (lastQuote > 0) {
+                                        jsonStr = jsonStr.substring(0, lastQuote + 1) + '}';
+                                    }
+                                }
+                                const parsed = JSON.parse(jsonStr);
+                                if (parsed.english && parsed.chinese) {
+                                    return {
+                                        english: parsed.english,
+                                        chinese: parsed.chinese
+                                    };
+                                }
+                            } catch (e2) {
+                                const englishMatch = jsonMatch[0].match(/"english"\s*:\s*"([^"]+)"/);
+                                const chineseMatch = jsonMatch[0].match(/"chinese"\s*:\s*"([^"]+)"/);
+                                if (englishMatch && chineseMatch) {
+                                    return {
+                                        english: englishMatch[1],
+                                        chinese: chineseMatch[1]
+                                    };
+                                }
+                                console.warn('🐝 Hive: Failed to parse extracted JSON:', e2);
+                            }
+                        }
+                        
+                        // 如果还是无法解析JSON，尝试从文本中提取英文和中文提示词
+                        let englishMatch = content.match(/"english"\s*:\s*"([^"]+)"/);
+                        let chineseMatch = content.match(/"chinese"\s*:\s*"([^"]+)"/);
+                        
+                        if (!englishMatch) {
+                            const englishStart = content.search(/(?:英文提示词|English Prompt)[:：]\s*/);
+                            if (englishStart >= 0) {
+                                const afterColon = content.substring(englishStart);
+                                const nextMarker = afterColon.search(/(?:中文提示词|Chinese Prompt)[:：]|$/);
+                                if (nextMarker > 0) {
+                                    let englishText = afterColon.substring(afterColon.indexOf(':') + 1, nextMarker).trim();
+                                    englishText = englishText.replace(/^["""]|["""]$/g, '').trim();
+                                    if (englishText.length > 50) {
+                                        englishMatch = [null, englishText];
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (!chineseMatch) {
+                            const chineseStart = content.search(/(?:中文提示词|Chinese Prompt)[:：]\s*/);
+                            if (chineseStart >= 0) {
+                                const afterColon = content.substring(chineseStart);
+                                let chineseText = afterColon.substring(afterColon.indexOf(':') + 1).trim();
+                                chineseText = chineseText.replace(/^["""]|["""]$/g, '').trim();
+                                if (chineseText.length > 20) {
+                                    chineseMatch = [null, chineseText];
+                                }
+                            }
+                        }
+                        
+                        if (englishMatch && chineseMatch) {
+                            const english = (englishMatch[1] || '').trim();
+                            const chinese = (chineseMatch[1] || '').trim();
+                            if (english && english.length > 50) {
+                                return {
+                                    english: english,
+                                    chinese: chinese && chinese.length > 20 ? chinese : null
+                                };
+                            }
+                        }
+                        
+                        console.warn('🐝 Hive: Failed to parse JSON response, using content as English prompt');
+                    }
+                }
+                
+                // 英文用户或解析失败：返回纯文本（英文提示词）
+                return {
+                    english: content,
+                    chinese: null
+                };
+            } catch (error) {
+                console.error('🐝 Hive: Error generating reverse prompt:', error);
+                throw error;
+            }
+        }
+
+        // 与AI对话功能（支持上下文关联）
+        async function sendAIChatMessage(message, conversationHistory = []) {
+            try {
+                // 获取大语言模型配置
+                const provider = localStorage.getItem('hive_llm_provider') || '';
+                const apiKey = localStorage.getItem('hive_llm_api_key') || '';
+                const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
+                const model = localStorage.getItem('hive_llm_model') || '';
+
+                if (!apiKey || !apiUrl || !model) {
+                    throw new Error('LLM API not configured');
+                }
+
+                // 构建请求头
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                };
+
+                // 限制历史记录最多10条（最新的10条）
+                const limitedHistory = conversationHistory.slice(-10);
+                
+                // 构建消息列表（包含历史对话和当前消息）
+                const messages = [...limitedHistory, { role: 'user', content: message }];
+
+                // 构建请求体
+                const requestBody = {
+                    model: model,
+                    messages: messages,
+                    temperature: 0.7,
+                    max_tokens: 2000,
+                    top_p: 0.9
+                };
+
+                // 智谱AI特殊处理
+                if (provider === 'zhipu' || apiUrl.includes('bigmodel.cn')) {
+                    requestBody.thinking = { type: "disabled" };
+                }
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    try {
+                        const errorText = await response.clone().text();
+                        if (errorText) {
+                            try {
+                                const errorData = JSON.parse(errorText);
+                                if (errorData.error) {
+                                    if (typeof errorData.error === 'string') {
+                                        errorMessage = errorData.error;
+                                    } else if (errorData.error.message) {
+                                        errorMessage = errorData.error.message;
+                                    }
+                                } else {
+                                    errorMessage = errorText.substring(0, 200);
+                                }
+                            } catch (e) {
+                                errorMessage = errorText.substring(0, 200);
+                            }
+                        }
+                    } catch (e) {
+                        // 忽略
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                const data = await response.json();
+                let content = data.choices?.[0]?.message?.content?.trim();
+                const reasoningContent = data.choices?.[0]?.message?.reasoning_content?.trim();
+                
+                if (!content && reasoningContent) {
+                    content = reasoningContent;
+                }
+                
+                if (!content) {
+                    throw new Error('No response from API');
+                }
+
+                return content;
+            } catch (error) {
+                console.error('🐝 Hive: Error sending AI chat message:', error);
+                throw error;
+            }
+        }
+
+        // 翻译功能
+        async function translateText(text, sourceLang, targetLang) {
+            try {
+                // 获取大语言模型配置
+                const provider = localStorage.getItem('hive_llm_provider') || '';
+                const apiKey = localStorage.getItem('hive_llm_api_key') || '';
+                const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
+                const model = localStorage.getItem('hive_llm_model') || '';
+
+                if (!apiKey || !apiUrl || !model) {
+                    throw new Error('LLM API not configured');
+                }
+
+                // 获取当前语言设置
+                const currentLang = getCurrentLanguage();
+                const isZh = currentLang === 'zh';
+
+                // 构建提示词
+                let systemPrompt, userPrompt;
+                if (sourceLang === 'zh' && targetLang === 'en') {
+                    // 中文翻译成英文
+                    systemPrompt = `You are a professional translator. Please translate the user's Chinese text into English accurately and naturally.
+
+Requirements:
+- Maintain the original meaning and tone
+- Use natural and fluent English
+- Preserve any technical terms or proper nouns appropriately
+- Return only the translated text, without any explanations or additional text`;
+                    userPrompt = `请将以下中文翻译成英文：\n\n${text}`;
+                } else if (sourceLang === 'en' && targetLang === 'zh') {
+                    // 英文翻译成中文
+                    systemPrompt = `你是一位专业的翻译。请将用户的英文文本准确、自然地翻译成中文。
+
+要求：
+- 保持原文的意思和语气
+- 使用自然流畅的中文
+- 适当保留技术术语或专有名词
+- 只返回翻译后的文本，不要有任何解释或额外文字`;
+                    userPrompt = `Please translate the following English text into Chinese:\n\n${text}`;
+                } else {
+                    throw new Error('Invalid language combination');
+                }
+
+                // 构建请求头
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                };
+
+                // 构建请求体
+                const requestBody = {
+                    model: model,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 2000,
+                    top_p: 0.9
+                };
+
+                // 智谱AI特殊处理
+                if (provider === 'zhipu' || apiUrl.includes('bigmodel.cn')) {
+                    requestBody.thinking = { type: "disabled" };
+                }
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    try {
+                        const errorText = await response.clone().text();
+                        if (errorText) {
+                            try {
+                                const errorData = JSON.parse(errorText);
+                                if (errorData.error) {
+                                    if (typeof errorData.error === 'string') {
+                                        errorMessage = errorData.error;
+                                    } else if (errorData.error.message) {
+                                        errorMessage = errorData.error.message;
+                                    }
+                                } else {
+                                    errorMessage = errorText.substring(0, 200);
+                                }
+                            } catch (e) {
+                                errorMessage = errorText.substring(0, 200);
+                            }
+                        }
+                    } catch (e) {
+                        // 忽略
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                const data = await response.json();
+                let content = data.choices?.[0]?.message?.content?.trim();
+                const reasoningContent = data.choices?.[0]?.message?.reasoning_content?.trim();
+                
+                if (!content && reasoningContent) {
+                    content = reasoningContent;
+                }
+                
+                if (!content) {
+                    throw new Error('No response from API');
+                }
+
+                return content;
+            } catch (error) {
+                console.error('🐝 Hive: Error translating text:', error);
+                throw error;
+            }
+        }
+
+        // 提示词扩写功能
+        async function expandPrompt(prompt) {
+            try {
+                // 获取大语言模型配置
+                const provider = localStorage.getItem('hive_llm_provider') || '';
+                const apiKey = localStorage.getItem('hive_llm_api_key') || '';
+                const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
+                const model = localStorage.getItem('hive_llm_model') || '';
+
+                if (!apiKey || !apiUrl || !model) {
+                    throw new Error('LLM API not configured');
+                }
+
+                // 获取当前语言设置
+                const currentLang = getCurrentLanguage();
+                const isZh = currentLang === 'zh';
+
+                // 构建提示词
+                let systemPrompt, userPrompt;
+                if (isZh) {
+                    systemPrompt = `你是一位专业的AI图像生成提示词工程师。请将用户提供的简短提示词扩写成详细、专业、富有创意的长提示词。
+
+要求：
+- 保持原提示词的核心内容和主题
+- 添加丰富的视觉细节（构图、光线、风格、情绪、艺术元素等）
+- 适合Stable Diffusion等AI图像生成模型
+- 专业且结构良好
+- 100-200个单词
+
+只返回扩写后的提示词，不要有任何解释、前缀或后缀。`;
+                    userPrompt = `请扩写以下提示词：${prompt}`;
+                } else {
+                    systemPrompt = `You are a professional prompt engineer for AI image generation. Please expand the user-provided short prompt into a detailed, professional, and creative long prompt.
+
+Requirements:
+- Keep the core content and theme of the original prompt
+- Add rich visual details (composition, lighting, style, mood, artistic elements, etc.)
+- Suitable for AI image generation models like Stable Diffusion
+- Professional and well-structured
+- 100-200 words
+
+Return only the expanded prompt, without any explanations, prefixes, or suffixes.`;
+                    userPrompt = `Please expand the following prompt: ${prompt}`;
+                }
+
+                // 构建请求头
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                };
+
+                // 构建请求体
+                const requestBody = {
+                    model: model,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 2000,
+                    top_p: 0.9
+                };
+
+                // 智谱AI特殊处理
+                if (provider === 'zhipu' || apiUrl.includes('bigmodel.cn')) {
+                    requestBody.thinking = { type: "disabled" };
+                }
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    try {
+                        const errorText = await response.clone().text();
+                        if (errorText) {
+                            try {
+                                const errorData = JSON.parse(errorText);
+                                if (errorData.error) {
+                                    if (typeof errorData.error === 'string') {
+                                        errorMessage = errorData.error;
+                                    } else if (errorData.error.message) {
+                                        errorMessage = errorData.error.message;
+                                    }
+                                } else {
+                                    errorMessage = errorText.substring(0, 200);
+                                }
+                            } catch (e) {
+                                errorMessage = errorText.substring(0, 200);
+                            }
+                        }
+                    } catch (e) {
+                        // 忽略
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                const data = await response.json();
+                let content = data.choices?.[0]?.message?.content?.trim();
+                const reasoningContent = data.choices?.[0]?.message?.reasoning_content?.trim();
+                
+                if (!content && reasoningContent) {
+                    content = reasoningContent;
+                }
+                
+                if (!content) {
+                    throw new Error('No response from API');
+                }
+
+                return content;
+            } catch (error) {
+                console.error('🐝 Hive: Error expanding prompt:', error);
+                throw error;
+            }
+        }
+
+        // 显示与AI对话弹窗
+        window.showAIChatModal = function showAIChatModal() {
+            // 移除现有的弹窗
+            const existingModal = document.getElementById('hive-ai-chat-modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            const getText = (key, fallback = '') => {
+                if (typeof window !== 'undefined' && typeof window.t === 'function') {
+                    return window.t(key);
+                }
+                return fallback;
+            };
+
+            const chatText = getText('contextMenu.aiChat', 'Hive 与AI对话');
+            const placeholderText = getText('contextMenu.aiChatPlaceholder', '请输入您的问题...');
+            const sendingText = getText('contextMenu.aiChatSending', '正在发送...');
+            const failedText = getText('contextMenu.aiChatFailed', '对话失败：');
+            const sendText = getText('contextMenu.aiChatSend', '发送');
+            const closeText = getText('common.close', '关闭');
+
+            // 创建弹窗
+            const modal = document.createElement('div');
+            modal.id = 'hive-ai-chat-modal';
+            modal.innerHTML = `
+                <div class="hive-confirm-overlay" style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.7);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                ">
+                    <div class="hive-confirm-content" style="
+                        background-color: var(--comfy-menu-bg);
+                        border-radius: 8px;
+                        padding: 24px;
+                        max-width: 700px;
+                        width: 90%;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                    ">
+                        <div style="
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-bottom: 20px;
+                            padding-bottom: 12px;
+                            border-bottom: 1px solid var(--border-color);
+                        ">
+                            <h3 style="
+                                margin: 0;
+                                color: var(--input-text);
+                                font-size: 18px;
+                            ">🐝 ${chatText}</h3>
+                            <button class="hive-ai-chat-close" style="
+                                background: none;
+                                border: none;
+                                color: var(--input-text);
+                                font-size: 24px;
+                                cursor: pointer;
+                                padding: 0;
+                                width: 30px;
+                                height: 30px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            ">×</button>
+                        </div>
+                        <div class="hive-ai-chat-content" style="
+                            margin-bottom: 20px;
+                            min-height: 200px;
+                            max-height: 400px;
+                            overflow-y: auto;
+                            padding: 16px;
+                            background-color: var(--comfy-input-bg);
+                            border-radius: 4px;
+                            border: 1px solid var(--border-color);
+                            color: var(--input-text);
+                            font-size: 14px;
+                            line-height: 1.6;
+                            white-space: pre-wrap;
+                            word-wrap: break-word;
+                        "></div>
+                        <div style="
+                            display: flex;
+                            gap: 12px;
+                            margin-bottom: 12px;
+                        ">
+                            <input type="text" class="hive-ai-chat-input" placeholder="${placeholderText}" style="
+                                flex: 1;
+                                padding: 8px 12px;
+                                border-radius: 4px;
+                                border: 1px solid var(--border-color);
+                                background-color: var(--comfy-input-bg);
+                                color: var(--input-text);
+                                font-size: 14px;
+                            ">
+                            <button class="hive-ai-chat-send" style="
+                                padding: 8px 16px;
+                                border-radius: 4px;
+                                border: none;
+                                background-color: #ffe066;
+                                color: #000;
+                                cursor: pointer;
+                                font-weight: 500;
+                                font-size: 14px;
+                            ">${sendText}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const closeBtn = modal.querySelector('.hive-ai-chat-close');
+            const sendBtn = modal.querySelector('.hive-ai-chat-send');
+            const inputEl = modal.querySelector('.hive-ai-chat-input');
+            const contentDiv = modal.querySelector('.hive-ai-chat-content');
+            const overlay = modal.querySelector('.hive-confirm-overlay');
+
+            const cleanup = () => {
+                modal.remove();
+            };
+
+            closeBtn.onclick = cleanup;
+            // 移除底部关闭按钮，点击弹窗外的空白区域不关闭
+            // closeBtn2.onclick = cleanup;
+            // overlay.onclick = (e) => {
+            //     if (e.target === overlay) {
+            //         cleanup();
+            //     }
+            // };
+
+            // Esc键关闭
+            const handleKeyDown = (e) => {
+                if (e.key === 'Escape') {
+                    cleanup();
+                    document.removeEventListener('keydown', handleKeyDown);
+                }
+            };
+            document.addEventListener('keydown', handleKeyDown);
+
+            // 对话历史记录（只在本次对话中有效，不保存）
+            let conversationHistory = [];
+
+            // 获取当前语言
+            const currentLang = getCurrentLanguage();
+            const isZh = currentLang === 'zh';
+            const userLabel = isZh ? '你' : 'You';
+            const aiLabel = 'AI';
+
+            // 发送消息
+            const sendMessage = async () => {
+                const message = inputEl.value.trim();
+                if (!message) {
+                    return;
+                }
+
+                // 显示用户消息
+                const userMsg = document.createElement('div');
+                userMsg.style.cssText = `
+                    margin-bottom: 12px;
+                    padding: 8px 12px;
+                    background-color: var(--comfy-menu-bg);
+                    border-radius: 4px;
+                    color: var(--input-text);
+                `;
+                userMsg.textContent = `${userLabel}: ${message}`;
+                contentDiv.appendChild(userMsg);
+                contentDiv.scrollTop = contentDiv.scrollHeight;
+
+                // 清空输入框
+                inputEl.value = '';
+                inputEl.disabled = true;
+                sendBtn.disabled = true;
+                sendBtn.textContent = sendingText;
+
+                try {
+                    // 发送消息，传入对话历史以支持上下文关联（函数内部会添加当前消息）
+                    const response = await sendAIChatMessage(message, conversationHistory);
+                    
+                    // 添加到对话历史（用户消息和AI回复）
+                    conversationHistory.push({ role: 'user', content: message });
+                    conversationHistory.push({ role: 'assistant', content: response });
+                    
+                    // 限制历史记录最多10条（最新的10条）
+                    if (conversationHistory.length > 10) {
+                        conversationHistory = conversationHistory.slice(-10);
+                    }
+                    
+                    // 显示AI回复
+                    const aiMsg = document.createElement('div');
+                    aiMsg.style.cssText = `
+                        margin-bottom: 12px;
+                        padding: 8px 12px;
+                        background-color: var(--comfy-input-bg);
+                        border-radius: 4px;
+                        color: var(--input-text);
+                    `;
+                    aiMsg.textContent = `${aiLabel}: ${response}`;
+                    contentDiv.appendChild(aiMsg);
+                    contentDiv.scrollTop = contentDiv.scrollHeight;
+                } catch (error) {
+                    const tryChangeModelText = getText('settings.tryChangeModel', '如果问题持续，您可以尝试更换模型后再试');
+                    const errorMsg = document.createElement('div');
+                    errorMsg.style.cssText = `
+                        margin-bottom: 12px;
+                        padding: 12px;
+                        background-color: rgba(255, 0, 0, 0.1);
+                        border-radius: 4px;
+                        color: var(--input-text);
+                    `;
+                    errorMsg.innerHTML = `
+                        <div style="margin-bottom: 8px;">${failedText}${error.message}</div>
+                        <div style="font-size: 12px; color: var(--descrip-text); padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.1);">💡 ${tryChangeModelText}</div>
+                    `;
+                    contentDiv.appendChild(errorMsg);
+                    contentDiv.scrollTop = contentDiv.scrollHeight;
+                } finally {
+                    inputEl.disabled = false;
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = sendText;
+                    inputEl.focus();
+                }
+            };
+
+            sendBtn.onclick = sendMessage;
+            inputEl.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            };
+
+            inputEl.focus();
+        };
+
+        // 显示提示词扩写弹窗
+        window.showExpandPromptModal = function showExpandPromptModal() {
+            // 移除现有的弹窗
+            const existingModal = document.getElementById('hive-expand-prompt-modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            const getText = (key, fallback = '') => {
+                if (typeof window !== 'undefined' && typeof window.t === 'function') {
+                    return window.t(key);
+                }
+                return fallback;
+            };
+
+            const expandText = getText('contextMenu.expandPrompt', 'Hive 提示词扩写');
+            const placeholderText = getText('contextMenu.expandPromptPlaceholder', '请输入要扩写的提示词...');
+            const expandingText = getText('contextMenu.expandingPrompt', '正在扩写提示词...');
+            const failedText = getText('contextMenu.expandPromptFailed', '扩写提示词失败：');
+            const sendText = getText('contextMenu.expandPromptSend', '扩写');
+            const copyPromptText = getText('contextMenu.copyPrompt', '复制提示词');
+            const promptCopiedText = getText('contextMenu.promptCopied', '提示词已复制到剪贴板');
+
+            // 创建弹窗
+            const modal = document.createElement('div');
+            modal.id = 'hive-expand-prompt-modal';
+            modal.innerHTML = `
+                <div class="hive-confirm-overlay" style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.7);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                ">
+                    <div class="hive-confirm-content" style="
+                        background-color: var(--comfy-menu-bg);
+                        border-radius: 8px;
+                        padding: 24px;
+                        max-width: 700px;
+                        width: 90%;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                    ">
+                        <div style="
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-bottom: 20px;
+                            padding-bottom: 12px;
+                            border-bottom: 1px solid var(--border-color);
+                        ">
+                            <h3 style="
+                                margin: 0;
+                                color: var(--input-text);
+                                font-size: 18px;
+                            ">🐝 ${expandText}</h3>
+                            <button class="hive-expand-prompt-close" style="
+                                background: none;
+                                border: none;
+                                color: var(--input-text);
+                                font-size: 24px;
+                                cursor: pointer;
+                                padding: 0;
+                                width: 30px;
+                                height: 30px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            ">×</button>
+                        </div>
+                        <div class="hive-expand-prompt-content" style="
+                            margin-bottom: 20px;
+                            min-height: 200px;
+                            max-height: 400px;
+                            overflow-y: auto;
+                            padding: 16px;
+                            background-color: var(--comfy-input-bg);
+                            border-radius: 4px;
+                            border: 1px solid var(--border-color);
+                            color: var(--input-text);
+                            font-size: 14px;
+                            line-height: 1.6;
+                            white-space: pre-wrap;
+                            word-wrap: break-word;
+                        "></div>
+                        <div class="hive-expand-prompt-buttons" style="
+                            display: flex;
+                            gap: 12px;
+                            margin-bottom: 12px;
+                        ">
+                            <input type="text" class="hive-expand-prompt-input" placeholder="${placeholderText}" style="
+                                flex: 1;
+                                padding: 8px 12px;
+                                border-radius: 4px;
+                                border: 1px solid var(--border-color);
+                                background-color: var(--comfy-input-bg);
+                                color: var(--input-text);
+                                font-size: 14px;
+                            ">
+                            <button class="hive-expand-prompt-send" style="
+                                padding: 8px 16px;
+                                border-radius: 4px;
+                                border: none;
+                                background-color: #ffe066;
+                                color: #000;
+                                cursor: pointer;
+                                font-weight: 500;
+                                font-size: 14px;
+                            ">${sendText}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const closeBtn = modal.querySelector('.hive-expand-prompt-close');
+            const sendBtn = modal.querySelector('.hive-expand-prompt-send');
+            const inputEl = modal.querySelector('.hive-expand-prompt-input');
+            const contentDiv = modal.querySelector('.hive-expand-prompt-content');
+            const buttonsContainer = modal.querySelector('.hive-expand-prompt-buttons');
+            const overlay = modal.querySelector('.hive-confirm-overlay');
+
+            const cleanup = () => {
+                modal.remove();
+            };
+
+            closeBtn.onclick = cleanup;
+            // 移除底部关闭按钮，点击弹窗外的空白区域不关闭
+            // closeBtn2.onclick = cleanup;
+            // overlay.onclick = (e) => {
+            //     if (e.target === overlay) {
+            //         cleanup();
+            //     }
+            // };
+
+            // Esc键关闭
+            const handleKeyDown = (e) => {
+                if (e.key === 'Escape') {
+                    cleanup();
+                    document.removeEventListener('keydown', handleKeyDown);
+                }
+            };
+            document.addEventListener('keydown', handleKeyDown);
+
+            // 扩写提示词
+            const doExpandPrompt = async () => {
+                const prompt = inputEl.value.trim();
+                if (!prompt) {
+                    return;
+                }
+
+                // 移除之前的复制按钮（如果存在）
+                const existingCopyBtn = buttonsContainer.querySelector('.hive-expand-prompt-copy');
+                if (existingCopyBtn) {
+                    existingCopyBtn.remove();
+                }
+
+                // 显示加载状态
+                contentDiv.textContent = expandingText;
+                contentDiv.style.cssText = `
+                    margin-bottom: 20px;
+                    min-height: 200px;
+                    max-height: 400px;
+                    overflow-y: auto;
+                    padding: 16px;
+                    background-color: var(--comfy-input-bg);
+                    border-radius: 4px;
+                    border: 1px solid var(--border-color);
+                    color: var(--descrip-text);
+                    font-size: 14px;
+                    text-align: center;
+                `;
+
+                inputEl.disabled = true;
+                sendBtn.disabled = true;
+                sendBtn.textContent = expandingText;
+
+                try {
+                    const expandedPrompt = await expandPrompt(prompt);
+                    
+                    // 显示扩写后的提示词
+                    contentDiv.textContent = expandedPrompt;
+                    contentDiv.style.cssText = `
+                        margin-bottom: 20px;
+                        min-height: 200px;
+                        max-height: 400px;
+                        overflow-y: auto;
+                        padding: 16px;
+                        background-color: var(--comfy-input-bg);
+                        border-radius: 4px;
+                        border: 1px solid var(--border-color);
+                        color: var(--input-text);
+                        font-size: 14px;
+                        line-height: 1.6;
+                        white-space: pre-wrap;
+                        word-wrap: break-word;
+                    `;
+                    
+                    // 添加复制按钮
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'hive-expand-prompt-copy';
+                    copyBtn.textContent = copyPromptText;
+                    copyBtn.style.cssText = `
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        border: none;
+                        background-color: #ffe066;
+                        color: #000;
+                        cursor: pointer;
+                        font-weight: 500;
+                        font-size: 14px;
+                        margin-left: auto;
+                    `;
+                    copyBtn.onclick = async () => {
+                        try {
+                            await navigator.clipboard.writeText(expandedPrompt);
+                            showToast(promptCopiedText, 'success');
+                        } catch (err) {
+                            console.error('🐝 Hive: Failed to copy prompt:', err);
+                            showToast(getText('common.copyFailed', '复制失败，请手动复制'), 'error');
+                        }
+                    };
+                    
+                    // 将复制按钮添加到按钮容器中（在输入框和发送按钮之后）
+                    buttonsContainer.appendChild(copyBtn);
+                } catch (error) {
+                    const tryChangeModelText = getText('settings.tryChangeModel', '如果问题持续，您可以尝试更换模型后再试');
+                    contentDiv.innerHTML = `
+                        <div style="margin-bottom: 12px;">${failedText}${error.message}</div>
+                        <div style="font-size: 12px; color: var(--descrip-text); padding-top: 12px; border-top: 1px solid var(--border-color);">💡 ${tryChangeModelText}</div>
+                    `;
+                    contentDiv.style.cssText = `
+                        margin-bottom: 20px;
+                        min-height: 200px;
+                        max-height: 400px;
+                        overflow-y: auto;
+                        padding: 16px;
+                        background-color: var(--comfy-input-bg);
+                        border-radius: 4px;
+                        border: 1px solid var(--border-color);
+                        color: var(--input-text);
+                        font-size: 14px;
+                        text-align: center;
+                    `;
+                } finally {
+                    inputEl.disabled = false;
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = sendText;
+                    inputEl.focus();
+                }
+            };
+
+            sendBtn.onclick = doExpandPrompt;
+            inputEl.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    doExpandPrompt();
+                }
+            };
+
+            inputEl.focus();
+        };
+
+        // 显示翻译弹窗
+        window.showTranslateModal = function showTranslateModal() {
+            // 移除现有的弹窗
+            const existingModal = document.getElementById('hive-translate-modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            const getText = (key, fallback = '') => {
+                if (typeof window !== 'undefined' && typeof window.t === 'function') {
+                    return window.t(key);
+                }
+                return fallback;
+            };
+
+            // 获取当前语言，设置默认源语言和目标语言
+            const currentLang = getCurrentLanguage();
+            const defaultSourceLang = currentLang === 'zh' ? 'zh' : 'en';
+            const defaultTargetLang = currentLang === 'zh' ? 'en' : 'zh';
+
+            const translateTitle = getText('contextMenu.translate', 'Hive 翻译');
+            const placeholderText = getText('contextMenu.translatePlaceholder', '请输入要翻译的文本...');
+            const translatingText = getText('contextMenu.translating', '正在翻译...');
+            const failedText = getText('contextMenu.translateFailed', '翻译失败：');
+            const sendText = getText('contextMenu.translateSend', '翻译');
+            const sourceLangText = getText('contextMenu.sourceLanguage', '源语言');
+            const targetLangText = getText('contextMenu.targetLanguage', '目标语言');
+            const chineseText = getText('contextMenu.chinese', '中文');
+            const englishText = getText('contextMenu.english', '英文');
+
+            // 创建弹窗
+            const modal = document.createElement('div');
+            modal.id = 'hive-translate-modal';
+            modal.innerHTML = `
+                <div class="hive-confirm-overlay" style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.7);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                ">
+                    <div class="hive-confirm-content" style="
+                        background-color: var(--comfy-menu-bg);
+                        border-radius: 8px;
+                        padding: 24px;
+                        max-width: 700px;
+                        width: 90%;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                    ">
+                        <div style="
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-bottom: 20px;
+                            padding-bottom: 12px;
+                            border-bottom: 1px solid var(--border-color);
+                        ">
+                            <h3 style="
+                                margin: 0;
+                                color: var(--input-text);
+                                font-size: 18px;
+                            ">🐝 ${translateTitle}</h3>
+                            <button class="hive-translate-close" style="
+                                background: none;
+                                border: none;
+                                color: var(--input-text);
+                                font-size: 24px;
+                                cursor: pointer;
+                                padding: 0;
+                                width: 30px;
+                                height: 30px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            ">×</button>
+                        </div>
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            gap: 12px;
+                            margin-bottom: 16px;
+                        ">
+                            <div style="
+                                display: flex;
+                                flex-direction: column;
+                                gap: 4px;
+                                flex: 1;
+                            ">
+                                <label style="
+                                    color: var(--input-text);
+                                    font-size: 12px;
+                                    font-weight: 500;
+                                ">${sourceLangText}</label>
+                                <select class="hive-translate-source-lang" style="
+                                    padding: 8px 12px;
+                                    border-radius: 4px;
+                                    border: 1px solid var(--border-color);
+                                    background-color: var(--comfy-input-bg);
+                                    color: var(--input-text);
+                                    font-size: 14px;
+                                ">
+                                    <option value="zh" ${defaultSourceLang === 'zh' ? 'selected' : ''}>${chineseText}</option>
+                                    <option value="en" ${defaultSourceLang === 'en' ? 'selected' : ''}>${englishText}</option>
+                                </select>
+                            </div>
+                            <button class="hive-translate-swap" style="
+                                margin-top: 24px;
+                                padding: 8px;
+                                border-radius: 4px;
+                                border: 1px solid var(--border-color);
+                                background-color: var(--comfy-input-bg);
+                                color: var(--input-text);
+                                cursor: pointer;
+                                font-size: 18px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                width: 36px;
+                                height: 36px;
+                            " title="交换语言">⇄</button>
+                            <div style="
+                                display: flex;
+                                flex-direction: column;
+                                gap: 4px;
+                                flex: 1;
+                            ">
+                                <label style="
+                                    color: var(--input-text);
+                                    font-size: 12px;
+                                    font-weight: 500;
+                                ">${targetLangText}</label>
+                                <select class="hive-translate-target-lang" style="
+                                    padding: 8px 12px;
+                                    border-radius: 4px;
+                                    border: 1px solid var(--border-color);
+                                    background-color: var(--comfy-input-bg);
+                                    color: var(--input-text);
+                                    font-size: 14px;
+                                ">
+                                    <option value="zh" ${defaultTargetLang === 'zh' ? 'selected' : ''}>${chineseText}</option>
+                                    <option value="en" ${defaultTargetLang === 'en' ? 'selected' : ''}>${englishText}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="hive-translate-content" style="
+                            margin-bottom: 20px;
+                            min-height: 200px;
+                            max-height: 400px;
+                            overflow-y: auto;
+                            padding: 16px;
+                            background-color: var(--comfy-input-bg);
+                            border-radius: 4px;
+                            border: 1px solid var(--border-color);
+                            color: var(--input-text);
+                            font-size: 14px;
+                            line-height: 1.6;
+                            white-space: pre-wrap;
+                            word-wrap: break-word;
+                        "></div>
+                        <div class="hive-translate-buttons" style="
+                            display: flex;
+                            gap: 12px;
+                            margin-bottom: 12px;
+                            align-items: flex-end;
+                        ">
+                            <textarea class="hive-translate-input" placeholder="${placeholderText}" style="
+                                flex: 1;
+                                padding: 8px 12px;
+                                border-radius: 4px;
+                                border: 1px solid var(--border-color);
+                                background-color: var(--comfy-input-bg);
+                                color: var(--input-text);
+                                font-size: 14px;
+                                resize: vertical;
+                                min-height: 80px;
+                                font-family: inherit;
+                            "></textarea>
+                            <button class="hive-translate-send" style="
+                                padding: 8px 16px;
+                                border-radius: 4px;
+                                border: none;
+                                background-color: #ffe066;
+                                color: #000;
+                                cursor: pointer;
+                                font-weight: 500;
+                                font-size: 14px;
+                            ">${sendText}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const closeBtn = modal.querySelector('.hive-translate-close');
+            const sendBtn = modal.querySelector('.hive-translate-send');
+            const inputEl = modal.querySelector('.hive-translate-input');
+            const contentDiv = modal.querySelector('.hive-translate-content');
+            const sourceLangSelect = modal.querySelector('.hive-translate-source-lang');
+            const targetLangSelect = modal.querySelector('.hive-translate-target-lang');
+            const swapBtn = modal.querySelector('.hive-translate-swap');
+            const overlay = modal.querySelector('.hive-confirm-overlay');
+
+            const cleanup = () => {
+                modal.remove();
+            };
+
+            closeBtn.onclick = cleanup;
+            // 移除底部关闭按钮，点击弹窗外的空白区域不关闭
+            // overlay.onclick = (e) => {
+            //     if (e.target === overlay) {
+            //         cleanup();
+            //     }
+            // };
+
+            // Esc键关闭
+            const handleKeyDown = (e) => {
+                if (e.key === 'Escape') {
+                    cleanup();
+                    document.removeEventListener('keydown', handleKeyDown);
+                }
+            };
+            document.addEventListener('keydown', handleKeyDown);
+
+            // 交换语言
+            swapBtn.onclick = () => {
+                const temp = sourceLangSelect.value;
+                sourceLangSelect.value = targetLangSelect.value;
+                targetLangSelect.value = temp;
+            };
+
+            // 翻译文本
+            const doTranslate = async () => {
+                const text = inputEl.value.trim();
+                if (!text) {
+                    return;
+                }
+
+                const sourceLang = sourceLangSelect.value;
+                const targetLang = targetLangSelect.value;
+
+                // 如果源语言和目标语言相同，提示用户
+                if (sourceLang === targetLang) {
+                    showToast(getText('contextMenu.translateFailed', '翻译失败：') + '源语言和目标语言不能相同', 'warning');
+                    return;
+                }
+
+                // 移除之前的复制按钮（如果存在）
+                const buttonsContainer = modal.querySelector('.hive-translate-buttons');
+                const existingCopyBtn = buttonsContainer.querySelector('.hive-translate-copy');
+                if (existingCopyBtn) {
+                    existingCopyBtn.remove();
+                }
+
+                // 显示加载状态
+                contentDiv.textContent = translatingText;
+                contentDiv.style.cssText = `
+                    margin-bottom: 20px;
+                    min-height: 200px;
+                    max-height: 400px;
+                    overflow-y: auto;
+                    padding: 16px;
+                    background-color: var(--comfy-input-bg);
+                    border-radius: 4px;
+                    border: 1px solid var(--border-color);
+                    color: var(--descrip-text);
+                    font-size: 14px;
+                    text-align: center;
+                `;
+
+                inputEl.disabled = true;
+                sendBtn.disabled = true;
+                sourceLangSelect.disabled = true;
+                targetLangSelect.disabled = true;
+                swapBtn.disabled = true;
+                sendBtn.textContent = translatingText;
+
+                try {
+                    const translatedText = await translateText(text, sourceLang, targetLang);
+                    
+                    // 显示翻译结果
+                    contentDiv.textContent = translatedText;
+                    contentDiv.style.cssText = `
+                        margin-bottom: 20px;
+                        min-height: 200px;
+                        max-height: 400px;
+                        overflow-y: auto;
+                        padding: 16px;
+                        background-color: var(--comfy-input-bg);
+                        border-radius: 4px;
+                        border: 1px solid var(--border-color);
+                        color: var(--input-text);
+                        font-size: 14px;
+                        line-height: 1.6;
+                        white-space: pre-wrap;
+                        word-wrap: break-word;
+                    `;
+                    
+                    // 添加复制按钮
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'hive-translate-copy';
+                    copyBtn.textContent = getText('contextMenu.copyResult', '复制结果');
+                    copyBtn.style.cssText = `
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        border: none;
+                        background-color: #ffe066;
+                        color: #000;
+                        cursor: pointer;
+                        font-weight: 500;
+                        font-size: 14px;
+                        margin-left: auto;
+                    `;
+                    copyBtn.onclick = async () => {
+                        try {
+                            await navigator.clipboard.writeText(translatedText);
+                            showToast(getText('contextMenu.promptCopied', '提示词已复制到剪贴板'), 'success');
+                        } catch (err) {
+                            console.error('🐝 Hive: Failed to copy translation:', err);
+                            showToast(getText('common.copyFailed', '复制失败，请手动复制'), 'error');
+                        }
+                    };
+                    
+                    // 将复制按钮添加到按钮容器中
+                    buttonsContainer.appendChild(copyBtn);
+                } catch (error) {
+                    contentDiv.textContent = `${failedText}${error.message}`;
+                    contentDiv.style.cssText = `
+                        margin-bottom: 20px;
+                        min-height: 200px;
+                        max-height: 400px;
+                        overflow-y: auto;
+                        padding: 16px;
+                        background-color: var(--comfy-input-bg);
+                        border-radius: 4px;
+                        border: 1px solid var(--border-color);
+                        color: var(--input-text);
+                        font-size: 14px;
+                        text-align: center;
+                    `;
+                } finally {
+                    inputEl.disabled = false;
+                    sendBtn.disabled = false;
+                    sourceLangSelect.disabled = false;
+                    targetLangSelect.disabled = false;
+                    swapBtn.disabled = false;
+                    sendBtn.textContent = sendText;
+                    inputEl.focus();
+                }
+            };
+
+            sendBtn.onclick = doTranslate;
+            inputEl.onkeydown = (e) => {
+                // Ctrl+Enter 或 Cmd+Enter 发送
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    doTranslate();
+                }
+            };
+
+            inputEl.focus();
+        };
+
+        // 显示配置提示弹窗（用于未配置API时，使用类似执行时的弹窗样式）
+        // 将函数暴露到全局，以便在 beforeRegisterNodeDef 中访问
+        window.showConfigPromptModal = function showConfigPromptModal(message, onConfirm) {
+            // 移除现有的弹窗
+            const existingModal = document.getElementById('hive-config-prompt-modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            const getText = (key, fallback = '') => {
+                if (typeof window !== 'undefined' && typeof window.t === 'function') {
+                    return window.t(key);
+                }
+                return fallback;
+            };
+
+            const closeText = getText('common.close', '关闭');
+            const settingsText = getText('settings.configureLLMAPI', '配置大模型API');
+
+            // 创建弹窗（使用类似showRandomPromptModal的样式）
+            const modal = document.createElement('div');
+            modal.id = 'hive-config-prompt-modal';
+            modal.innerHTML = `
+                <div class="hive-confirm-overlay" style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.7);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                ">
+                    <div class="hive-confirm-content" style="
+                        background-color: var(--comfy-menu-bg);
+                        border-radius: 8px;
+                        padding: 24px;
+                        max-width: 700px;
+                        width: 90%;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                    ">
+                        <div style="
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-bottom: 20px;
+                            padding-bottom: 12px;
+                            border-bottom: 1px solid var(--border-color);
+                        ">
+                            <h3 style="
+                                margin: 0;
+                                color: var(--input-text);
+                                font-size: 18px;
+                            ">⚠️ ${getText('settings.configureLLMAPI', '配置大模型API')}</h3>
+                            <button class="hive-config-prompt-close" style="
+                                background: none;
+                                border: none;
+                                color: var(--input-text);
+                                font-size: 24px;
+                                cursor: pointer;
+                                padding: 0;
+                                width: 30px;
+                                height: 30px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            ">×</button>
+                        </div>
+                        <div class="hive-config-prompt-content" style="
+                            margin-bottom: 20px;
+                            min-height: 100px;
+                        ">
+                            <div style="
+                                color: var(--input-text);
+                                font-size: 14px;
+                                line-height: 1.6;
+                                white-space: pre-line;
+                                padding: 16px;
+                                background-color: var(--comfy-input-bg);
+                                border-radius: 4px;
+                                border: 1px solid var(--border-color);
+                            ">${message}</div>
+                        </div>
+                        <div style="
+                            display: flex;
+                            justify-content: flex-end;
+                            gap: 12px;
+                        ">
+                            <button class="hive-config-prompt-close-btn" style="
+                                padding: 8px 16px;
+                                border-radius: 4px;
+                                border: none;
+                                background-color: var(--comfy-input-bg);
+                                color: var(--input-text);
+                                cursor: pointer;
+                                font-weight: 500;
+                                font-size: 14px;
+                            ">${closeText}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const closeBtn = modal.querySelector('.hive-config-prompt-close');
+            const closeBtn2 = modal.querySelector('.hive-config-prompt-close-btn');
+            const overlay = modal.querySelector('.hive-confirm-overlay');
+
+            const cleanup = () => {
+                modal.remove();
+            };
+
+            closeBtn.onclick = cleanup;
+            if (closeBtn2) {
+                closeBtn2.onclick = cleanup;
+            }
+
+            overlay.onclick = (e) => {
+                if (e.target === overlay) {
+                    cleanup();
+                }
+            };
+
+            // Esc键关闭
+            const handleKeyDown = (e) => {
+                if (e.key === 'Escape') {
+                    cleanup();
+                    document.removeEventListener('keydown', handleKeyDown);
+                }
+            };
+            document.addEventListener('keydown', handleKeyDown);
+        }
+
+        // 显示提示词反推弹层
+        // 将函数暴露到全局，以便在 beforeRegisterNodeDef 中访问
+        window.showReversePromptModal = async function showReversePromptModal(imageUrl) {
+            // 移除现有的弹层
+            const existingModal = document.getElementById('hive-reverse-prompt-modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            const getText = (key, fallback = '') => {
+                if (typeof window !== 'undefined' && typeof window.t === 'function') {
+                    return window.t(key);
+                }
+                return fallback;
+            };
+
+            const reversePromptText = getText('contextMenu.reversePrompt', 'Hive 提示词反推');
+            const generatingText = getText('contextMenu.generatingReversePrompt', '正在分析图片并生成提示词...');
+            const copyPromptText = getText('contextMenu.copyPrompt', '复制提示词');
+            const promptCopiedText = getText('contextMenu.promptCopied', '提示词已复制到剪贴板');
+            const reversePromptFailedText = getText('contextMenu.reversePromptFailed', '提示词反推失败：');
+            const closeText = getText('common.close', '关闭');
+
+            // 创建弹层
+            const modal = document.createElement('div');
+            modal.id = 'hive-reverse-prompt-modal';
+            modal.innerHTML = `
+                <div class="hive-confirm-overlay" style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.7);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                ">
+                    <div class="hive-confirm-content" style="
+                        background-color: var(--comfy-menu-bg);
+                        border-radius: 8px;
+                        padding: 24px;
+                        max-width: 700px;
+                        width: 90%;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                    ">
+                        <div style="
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-bottom: 20px;
+                            padding-bottom: 12px;
+                            border-bottom: 1px solid var(--border-color);
+                        ">
+                            <h3 style="
+                                margin: 0;
+                                color: var(--input-text);
+                                font-size: 18px;
+                            ">🐝 ${reversePromptText}</h3>
+                            <button class="hive-reverse-prompt-close" style="
+                                background: none;
+                                border: none;
+                                color: var(--input-text);
+                                font-size: 24px;
+                                cursor: pointer;
+                                padding: 0;
+                                width: 30px;
+                                height: 30px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            ">×</button>
+                        </div>
+                        <div class="hive-reverse-prompt-content" style="
+                            margin-bottom: 20px;
+                            min-height: 200px;
+                        ">
+                            <div class="hive-reverse-prompt-loading" style="
+                                text-align: center;
+                                padding: 40px;
+                                color: var(--descrip-text);
+                            ">
+                                ${generatingText}
+                            </div>
+                        </div>
+                        <div style="
+                            display: flex;
+                            justify-content: flex-end;
+                            gap: 12px;
+                        ">
+                            <button class="hive-reverse-prompt-copy" style="
+                                padding: 8px 16px;
+                                border-radius: 4px;
+                                border: none;
+                                background-color: #ffe066;
+                                color: #000;
+                                cursor: pointer;
+                                font-weight: 500;
+                                font-size: 14px;
+                                display: none;
+                            ">${copyPromptText}</button>
+                            <button class="hive-reverse-prompt-close-btn" style="
+                                padding: 8px 16px;
+                                border-radius: 4px;
+                                border: none;
+                                background-color: var(--comfy-input-bg);
+                                color: var(--input-text);
+                                cursor: pointer;
+                                font-weight: 500;
+                                font-size: 14px;
+                            ">${closeText}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const closeBtn = modal.querySelector('.hive-reverse-prompt-close');
+            const closeBtn2 = modal.querySelector('.hive-reverse-prompt-close-btn');
+            const copyBtn = modal.querySelector('.hive-reverse-prompt-copy');
+            const overlay = modal.querySelector('.hive-confirm-overlay');
+            const contentDiv = modal.querySelector('.hive-reverse-prompt-content');
+            const loadingDiv = modal.querySelector('.hive-reverse-prompt-loading');
+
+            let generatedPrompt = null;
+
+            const cleanup = () => {
+                modal.remove();
+            };
+
+            // 关闭按钮
+            closeBtn.onclick = cleanup;
+            closeBtn2.onclick = cleanup;
+
+            // 点击遮罩层关闭
+            overlay.onclick = (e) => {
+                if (e.target === overlay) {
+                    cleanup();
+                }
+            };
+
+            // 设置复制按钮（根据语言显示不同的复制按钮）
+            const setupCopyButtons = (promptData) => {
+                const currentLang = getCurrentLanguage();
+                const isZh = currentLang === 'zh';
+                
+                // 清空现有的复制按钮区域
+                const buttonContainer = modal.querySelector('.hive-reverse-prompt-close-btn').parentElement;
+                buttonContainer.innerHTML = '';
+                
+                if (isZh && promptData.chinese) {
+                    // 中文用户且有中文提示词：显示两个复制按钮
+                    const copyEnglishBtn = document.createElement('button');
+                    copyEnglishBtn.className = 'hive-reverse-prompt-copy-english';
+                    copyEnglishBtn.textContent = getText('contextMenu.copyEnglishPrompt', '复制英文提示词');
+                    copyEnglishBtn.style.cssText = `
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        border: none;
+                        background-color: #ffe066;
+                        color: #000;
+                        cursor: pointer;
+                        font-weight: 500;
+                        font-size: 14px;
+                        margin-right: 8px;
+                    `;
+                    copyEnglishBtn.onclick = async () => {
+                        try {
+                            await navigator.clipboard.writeText(promptData.english);
+                            showToast(promptCopiedText, 'success');
+                        } catch (err) {
+                            console.error('🐝 Hive: Failed to copy English prompt:', err);
+                            showToast(getText('common.copyFailed', '复制失败，请手动复制'), 'error');
+                        }
+                    };
+                    
+                    const copyChineseBtn = document.createElement('button');
+                    copyChineseBtn.className = 'hive-reverse-prompt-copy-chinese';
+                    copyChineseBtn.textContent = getText('contextMenu.copyChinesePrompt', '复制中文提示词');
+                    copyChineseBtn.style.cssText = `
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        border: none;
+                        background-color: #ffe066;
+                        color: #000;
+                        cursor: pointer;
+                        font-weight: 500;
+                        font-size: 14px;
+                        margin-right: 8px;
+                    `;
+                    copyChineseBtn.onclick = async () => {
+                        try {
+                            await navigator.clipboard.writeText(promptData.chinese);
+                            showToast(promptCopiedText, 'success');
+                        } catch (err) {
+                            console.error('🐝 Hive: Failed to copy Chinese prompt:', err);
+                            showToast(getText('common.copyFailed', '复制失败，请手动复制'), 'error');
+                        }
+                    };
+                    
+                    buttonContainer.appendChild(copyEnglishBtn);
+                    buttonContainer.appendChild(copyChineseBtn);
+                } else {
+                    // 英文用户或只有英文提示词：显示一个复制按钮
+                    const singleCopyBtn = document.createElement('button');
+                    singleCopyBtn.className = 'hive-reverse-prompt-copy';
+                    singleCopyBtn.textContent = copyPromptText;
+                    singleCopyBtn.style.cssText = `
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        border: none;
+                        background-color: #ffe066;
+                        color: #000;
+                        cursor: pointer;
+                        font-weight: 500;
+                        font-size: 14px;
+                        margin-right: 8px;
+                    `;
+                    singleCopyBtn.onclick = async () => {
+                        try {
+                            await navigator.clipboard.writeText(promptData.english);
+                            showToast(promptCopiedText, 'success');
+                        } catch (err) {
+                            console.error('🐝 Hive: Failed to copy prompt:', err);
+                            showToast(getText('common.copyFailed', '复制失败，请手动复制'), 'error');
+                        }
+                    };
+                    
+                    buttonContainer.appendChild(singleCopyBtn);
+                }
+                
+                // 添加关闭按钮
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'hive-reverse-prompt-close-btn';
+                closeBtn.textContent = closeText;
+                closeBtn.style.cssText = `
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    border: none;
+                    background-color: var(--comfy-input-bg);
+                    color: var(--input-text);
+                    cursor: pointer;
+                    font-weight: 500;
+                    font-size: 14px;
+                `;
+                closeBtn.onclick = cleanup;
+                buttonContainer.appendChild(closeBtn);
+            };
+
+            // Esc键关闭
+            const handleKeyDown = (e) => {
+                if (e.key === 'Escape') {
+                    cleanup();
+                    document.removeEventListener('keydown', handleKeyDown);
+                }
+            };
+            document.addEventListener('keydown', handleKeyDown);
+
+            // 生成提示词
+            try {
+                generatedPrompt = await generateReversePrompt(imageUrl);
+                
+                // 隐藏加载提示，显示生成的提示词
+                loadingDiv.style.display = 'none';
+                
+                const currentLang = getCurrentLanguage();
+                const isZh = currentLang === 'zh';
+                
+                if (isZh && generatedPrompt.chinese) {
+                    // 中文用户且有中文提示词：显示两个提示词框
+                    contentDiv.innerHTML = `
+                        <div style="margin-bottom: 16px;">
+                            <div style="
+                                margin-bottom: 8px;
+                                color: var(--input-text);
+                                font-weight: 500;
+                                font-size: 14px;
+                            ">${getText('contextMenu.englishPrompt', '英文提示词')}</div>
+                            <div style="
+                                padding: 16px;
+                                background-color: var(--comfy-input-bg);
+                                border-radius: 4px;
+                                border: 1px solid var(--border-color);
+                                color: var(--input-text);
+                                font-size: 14px;
+                                line-height: 1.6;
+                                white-space: pre-wrap;
+                                word-wrap: break-word;
+                            ">${generatedPrompt.english}</div>
+                        </div>
+                        <div>
+                            <div style="
+                                margin-bottom: 8px;
+                                color: var(--input-text);
+                                font-weight: 500;
+                                font-size: 14px;
+                            ">${getText('contextMenu.chinesePrompt', '中文提示词')}</div>
+                            <div style="
+                                padding: 16px;
+                                background-color: var(--comfy-input-bg);
+                                border-radius: 4px;
+                                border: 1px solid var(--border-color);
+                                color: var(--input-text);
+                                font-size: 14px;
+                                line-height: 1.6;
+                                white-space: pre-wrap;
+                                word-wrap: break-word;
+                            ">${generatedPrompt.chinese}</div>
+                        </div>
+                    `;
+                } else {
+                    // 英文用户或只有英文提示词：只显示英文提示词
+                    contentDiv.innerHTML = `
+                        <div style="
+                            padding: 16px;
+                            background-color: var(--comfy-input-bg);
+                            border-radius: 4px;
+                            border: 1px solid var(--border-color);
+                            color: var(--input-text);
+                            font-size: 14px;
+                            line-height: 1.6;
+                            white-space: pre-wrap;
+                            word-wrap: break-word;
+                        ">${generatedPrompt.english}</div>
+                    `;
+                }
+                
+                // 设置复制按钮
+                setupCopyButtons(generatedPrompt);
+            } catch (error) {
+                console.error('🐝 Hive: Error generating reverse prompt:', error);
+                // 显示详细的错误信息
+                let errorMessage = error.message || '未知错误';
+                // 如果是API未配置的错误，显示配置提示
+                if (errorMessage.includes('请先在设置界面配置') || errorMessage.includes('API未配置')) {
+                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
+                        '请先在设置界面配置视觉模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"视觉模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                    loadingDiv.innerHTML = `
+                        <div style="
+                            color: var(--descrip-text);
+                            text-align: center;
+                        ">
+                            <div style="margin-bottom: 12px; color: var(--input-text); font-weight: 500;">${reversePromptFailedText}</div>
+                            <div style="font-size: 14px; line-height: 1.6; white-space: pre-line; color: var(--descrip-text);">${pleaseConfigureText}</div>
+                        </div>
+                    `;
+                } else {
+                    // 显示详细的错误信息
+                    const tryChangeModelText = getText('settings.tryChangeModel', '如果问题持续，您可以尝试更换模型后再试');
+                    loadingDiv.innerHTML = `
+                        <div style="
+                            color: var(--descrip-text);
+                            text-align: center;
+                        ">
+                            <div style="margin-bottom: 12px; color: var(--input-text); font-weight: 500;">${reversePromptFailedText}</div>
+                            <div style="font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; color: var(--descrip-text); padding: 12px; background-color: var(--comfy-input-bg); border-radius: 4px; border: 1px solid var(--border-color); margin-bottom: 12px;">${errorMessage}</div>
+                            <div style="font-size: 13px; line-height: 1.6; color: var(--descrip-text); padding: 8px 12px; background-color: var(--comfy-menu-bg); border-radius: 4px; border: 1px solid var(--border-color);">💡 ${tryChangeModelText}</div>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // 注册节点右键菜单：Hive 修复节点
+        // 延迟执行，确保 LiteGraph 已加载
+        function registerNodeContextMenu() {
+            setTimeout(() => {
+            try {
+                // 获取翻译文本的辅助函数
+                const getMenuText = (key) => {
+                    if (typeof window !== 'undefined' && typeof window.t === 'function') {
+                        return window.t(key);
+                    }
+                    // 回退文本（中英文）
+                    const fallbacks = {
+                        'contextMenu.fixNodeWithHive': {
+                            zh: 'Hive 修复节点',
+                            en: 'Hive Fix Node'
+                        },
+                        'contextMenu.selectNodeLink': {
+                            zh: '选择节点安装地址',
+                            en: 'Select Node Installation Address'
+                        },
+                        'contextMenu.nodeName': {
+                            zh: '节点名称',
+                            en: 'Node Name'
+                        },
+                        'contextMenu.installAddress': {
+                            zh: '安装地址',
+                            en: 'Installation Address'
+                        },
+                        'contextMenu.noNodeLinks': {
+                            zh: '未找到可用的节点安装地址',
+                            en: 'No available node installation addresses found'
+                        }
+                    };
+                    const currentLang = (typeof navigator !== 'undefined' && navigator.language && navigator.language.startsWith('zh')) ? 'zh' : 'en';
+                    return fallbacks[key] ? fallbacks[key][currentLang] : key;
+                };
+
+                // 显示节点链接选择弹层
+                const showNodeLinkSelector = (nodeName, nodeLinks) => {
+                    return new Promise((resolve) => {
+                        // 移除现有的选择弹层
+                        const existingModal = document.getElementById('hive-node-link-selector-modal');
+                        if (existingModal) {
+                            existingModal.remove();
+                        }
+
+                        // 获取翻译文本
+                        const selectNodeLinkText = getMenuText('contextMenu.selectNodeLink');
+                        const nodeNameText = getMenuText('contextMenu.nodeName');
+                        const installAddressText = getMenuText('contextMenu.installAddress');
+                        const noNodeLinksText = getMenuText('contextMenu.noNodeLinks');
+                        const closeText = getText('common.close', 'Close');
+                        const installText = getText('missingItems.install', 'Install');
+
+                        // 创建弹层
+                        const modal = document.createElement('div');
+                        modal.id = 'hive-node-link-selector-modal';
+                        
+                        // 构建节点链接列表HTML
+                        let nodeLinksHTML = '';
+                        if (!nodeLinks || nodeLinks.length === 0) {
+                            nodeLinksHTML = `<div style="padding: 20px; text-align: center; color: var(--descrip-text);">${noNodeLinksText}</div>`;
+                        } else {
+                            nodeLinksHTML = nodeLinks.map((link, index) => {
+                                const label = link.label || installText;
+                                const url = link.url || '';
+                                return `
+                                    <div class="hive-node-link-item" data-index="${index}" style="
+                                        padding: 12px;
+                                        margin: 8px 0;
+                                        border: 1px solid var(--border-color);
+                                        border-radius: 4px;
+                                        cursor: pointer;
+                                        background-color: var(--comfy-input-bg);
+                                        transition: background-color 0.2s;
+                                    ">
+                                        <div style="font-weight: 500; margin-bottom: 4px; color: var(--input-text);">${label}</div>
+                                        <div style="font-size: 12px; color: var(--descrip-text); word-break: break-all;">${url}</div>
+                                    </div>
+                                `;
+                            }).join('');
+                        }
+
+                        modal.innerHTML = `
+                            <div class="hive-confirm-overlay" style="
+                                position: fixed;
+                                top: 0;
+                                left: 0;
+                                width: 100%;
+                                height: 100%;
+                                background-color: rgba(0, 0, 0, 0.7);
+                                display: flex;
+                                justify-content: center;
+                                align-items: center;
+                                z-index: 10000;
+                            ">
+                                <div class="hive-confirm-content" style="
+                                    background-color: var(--comfy-menu-bg);
+                                    border-radius: 8px;
+                                    padding: 24px;
+                                    max-width: 600px;
+                                    width: 90%;
+                                    max-height: 80vh;
+                                    overflow-y: auto;
+                                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                                ">
+                                    <div style="
+                                        display: flex;
+                                        justify-content: space-between;
+                                        align-items: center;
+                                        margin-bottom: 20px;
+                                        padding-bottom: 12px;
+                                        border-bottom: 1px solid var(--border-color);
+                                    ">
+                                        <h3 style="
+                                            margin: 0;
+                                            color: var(--input-text);
+                                            font-size: 18px;
+                                        ">${selectNodeLinkText}</h3>
+                                        <button class="hive-node-link-close" style="
+                                            background: none;
+                                            border: none;
+                                            color: var(--input-text);
+                                            font-size: 24px;
+                                            cursor: pointer;
+                                            padding: 0;
+                                            width: 30px;
+                                            height: 30px;
+                                            display: flex;
+                                            align-items: center;
+                                            justify-content: center;
+                                        ">×</button>
+                                    </div>
+                                    <div style="margin-bottom: 16px;">
+                                        <div style="
+                                            font-size: 14px;
+                                            color: var(--descrip-text);
+                                            margin-bottom: 8px;
+                                        ">${nodeNameText}: <span style="color: var(--input-text); font-weight: 500;">${nodeName}</span></div>
+                                    </div>
+                                    <div style="margin-bottom: 20px;">
+                                        <div style="
+                                            font-size: 14px;
+                                            color: var(--descrip-text);
+                                            margin-bottom: 12px;
+                                        ">${installAddressText}:</div>
+                                        <div class="hive-node-links-list">
+                                            ${nodeLinksHTML}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+
+                        document.body.appendChild(modal);
+
+                        // 绑定事件
+                        const closeBtn = modal.querySelector('.hive-node-link-close');
+                        const overlay = modal.querySelector('.hive-confirm-overlay');
+                        const linkItems = modal.querySelectorAll('.hive-node-link-item');
+
+                        const cleanup = () => {
+                            modal.remove();
+                        };
+
+                        // 关闭按钮
+                        closeBtn.onclick = () => {
+                            cleanup();
+                            resolve(null);
+                        };
+
+                        // 点击遮罩层关闭
+                        overlay.onclick = (e) => {
+                            if (e.target === overlay) {
+                                cleanup();
+                                resolve(null);
+                            }
+                        };
+
+                        // 点击节点链接项
+                        linkItems.forEach((item) => {
+                            item.onmouseenter = () => {
+                                item.style.backgroundColor = 'var(--comfy-input-bg)';
+                                item.style.borderColor = 'var(--input-text)';
+                            };
+                            item.onmouseleave = () => {
+                                item.style.backgroundColor = 'var(--comfy-input-bg)';
+                                item.style.borderColor = 'var(--border-color)';
+                            };
+                            item.onclick = () => {
+                                const index = parseInt(item.dataset.index);
+                                cleanup();
+                                resolve(nodeLinks[index]);
+                            };
+                        });
+
+                        // Esc键关闭
+                        const handleKeyDown = (e) => {
+                            if (e.key === 'Escape') {
+                                cleanup();
+                                resolve(null);
+                                document.removeEventListener('keydown', handleKeyDown);
+                            }
+                        };
+                        document.addEventListener('keydown', handleKeyDown);
+                    });
+                };
+
+                // 修复节点的函数
+                const fixNodeWithHive = async (node) => {
+                    try {
+                        const nodeType = node.type || node.comfyClass;
+                        if (!nodeType) {
+                            showToast(getText('toast.nodeExecuteFailed', 'Failed to execute node'), 'error');
+                            return;
+                        }
+
+                        // 打印节点名称到控制台
+                        console.log('🐝 Hive: 要修复的节点名称:', nodeType);
+
+                        // 使用 searchNodeByClassMapping 搜索节点
+                        const searchNodeByClassMapping = window.hiveSearchNodeByClassMapping;
+                        if (!searchNodeByClassMapping) {
+                            showToast(getText('toast.nodeExecuteFailed', 'Failed to execute node'), 'error');
+                            return;
+                        }
+
+                        // 搜索节点
+                        const libraryItem = await searchNodeByClassMapping(nodeType);
+                        if (!libraryItem) {
+                            const notFoundText = getText('toast.nodeUrlNotFound', 'Node installation URL not found');
+                            showToast(notFoundText, 'warning');
+                            return;
+                        }
+
+                        // 获取节点安装URL
+                        const nodeLinks = libraryItem.extra?.node_links || [];
+                        if (!nodeLinks || nodeLinks.length === 0) {
+                            const notFoundText = getText('toast.nodeUrlNotFound', 'Node installation URL not found');
+                            showToast(notFoundText, 'error');
+                            return;
+                        }
+
+                        // 显示选择弹层，让用户选择 node_link
+                        const selectedLink = await showNodeLinkSelector(nodeType, nodeLinks);
+                        
+                        // 如果用户取消了选择或没有选择，直接返回
+                        if (!selectedLink || !selectedLink.url) {
+                            return;
+                        }
+
+                        // 创建包含特定 node_link 的库项对象
+                        const itemWithLink = { 
+                            ...libraryItem,
+                            extra: {
+                                ...(libraryItem.extra || {}),
+                                node_links: [selectedLink] // 只包含用户选择的链接
+                            }
+                        };
+
+                        // 调用安装函数
+                        await handleInspirationInstallNode(itemWithLink, selectedLink.url);
+                    } catch (error) {
+                        console.error('🐝 Hive: Error fixing node with Hive:', error);
+                        const errorText = getText('toast.nodeInstallFailed', 'Failed to install node: ');
+                        showToast(errorText + error.message, 'error');
+                    }
+                };
+
+                // 重写 getNodeMenuOptions 方法
+                if (typeof LGraphCanvas !== 'undefined' && LGraphCanvas.prototype.getNodeMenuOptions) {
+                    const originalGetNodeMenuOptions = LGraphCanvas.prototype.getNodeMenuOptions;
+                    LGraphCanvas.prototype.getNodeMenuOptions = function(node) {
+                        // 调用原始方法获取默认菜单选项
+                        const originalOptions = originalGetNodeMenuOptions.apply(this, arguments);
+                        
+                        // 创建新的菜单选项（添加🐝前缀）
+                        const menuText = getMenuText('contextMenu.fixNodeWithHive');
+                        const hiveMenuOption = {
+                            content: `🐝 ${menuText}`,
+                            callback: () => {
+                                fixNodeWithHive(node);
+                            }
+                        };
+
+                        // 随机提示词选项
+                        const randomPromptMenuOption = {
+                            content: `🐝 ${getMenuText('contextMenu.randomPrompt')}`,
+                            callback: () => {
+                                // 检查是否配置了API
+                                const apiKey = localStorage.getItem('hive_llm_api_key') || '';
+                                const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
+                                const model = localStorage.getItem('hive_llm_model') || '';
+                                if (!apiKey || !apiUrl || !model) {
+                                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
+                                        '请配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"大语言模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                                    if (typeof window.showConfigPromptModal === 'function') {
+                                        window.showConfigPromptModal(pleaseConfigureText);
+                                    } else {
+                                        showToast(pleaseConfigureText, 'warning');
+                                    }
+                                    return;
+                                }
+                                showRandomPromptModal();
+                            }
+                        };
+
+                        // AI对话选项
+                        const aiChatMenuOption = {
+                            content: `🐝 ${getMenuText('contextMenu.aiChat')}`,
+                            callback: () => {
+                                // 检查是否配置了API
+                                const apiKey = localStorage.getItem('hive_llm_api_key') || '';
+                                const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
+                                const model = localStorage.getItem('hive_llm_model') || '';
+                                if (!apiKey || !apiUrl || !model) {
+                                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
+                                        '请配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"大语言模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                                    if (typeof window.showConfigPromptModal === 'function') {
+                                        window.showConfigPromptModal(pleaseConfigureText);
+                                    } else {
+                                        showToast(pleaseConfigureText, 'warning');
+                                    }
+                                    return;
+                                }
+                                if (typeof window.showAIChatModal === 'function') {
+                                    window.showAIChatModal();
+                                }
+                            }
+                        };
+
+                        // 提示词扩写选项
+                        const expandPromptMenuOption = {
+                            content: `🐝 ${getMenuText('contextMenu.expandPrompt')}`,
+                            callback: () => {
+                                // 检查是否配置了API
+                                const apiKey = localStorage.getItem('hive_llm_api_key') || '';
+                                const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
+                                const model = localStorage.getItem('hive_llm_model') || '';
+                                if (!apiKey || !apiUrl || !model) {
+                                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
+                                        '请配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"大语言模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                                    if (typeof window.showConfigPromptModal === 'function') {
+                                        window.showConfigPromptModal(pleaseConfigureText);
+                                    } else {
+                                        showToast(pleaseConfigureText, 'warning');
+                                    }
+                                    return;
+                                }
+                                if (typeof window.showExpandPromptModal === 'function') {
+                                    window.showExpandPromptModal();
+                                }
+                            }
+                        };
+
+                        // 翻译选项
+                        const translateMenuOption = {
+                            content: `🐝 ${getMenuText('contextMenu.translate')}`,
+                            callback: () => {
+                                // 检查是否配置了API
+                                const apiKey = localStorage.getItem('hive_llm_api_key') || '';
+                                const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
+                                const model = localStorage.getItem('hive_llm_model') || '';
+                                if (!apiKey || !apiUrl || !model) {
+                                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
+                                        '请配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"大语言模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                                    if (typeof window.showConfigPromptModal === 'function') {
+                                        window.showConfigPromptModal(pleaseConfigureText);
+                                    } else {
+                                        showToast(pleaseConfigureText, 'warning');
+                                    }
+                                    return;
+                                }
+                                if (typeof window.showTranslateModal === 'function') {
+                                    window.showTranslateModal();
+                                }
+                            }
+                        };
+
+                        // 节点右键菜单：顺序：提示词扩写、随机提示词、与AI对话、翻译、修复节点
+                        return [expandPromptMenuOption, randomPromptMenuOption, aiChatMenuOption, translateMenuOption, hiveMenuOption, null, ...originalOptions];
+                    };
+                    console.log('🐝 Hive: Node context menu registered successfully');
+                } else {
+                    console.warn('🐝 Hive: LGraphCanvas not available, cannot register node context menu');
+                }
+
+                // 注册画布右键菜单：随机提示词
+                if (typeof LGraphCanvas !== 'undefined' && LGraphCanvas.prototype.getCanvasMenuOptions) {
+                    const originalGetCanvasMenuOptions = LGraphCanvas.prototype.getCanvasMenuOptions;
+                    LGraphCanvas.prototype.getCanvasMenuOptions = function() {
+                        const originalOptions = originalGetCanvasMenuOptions.apply(this, arguments);
+                        
+                        const randomPromptMenuOption = {
+                            content: `🐝 ${getMenuText('contextMenu.randomPrompt')}`,
+                            callback: () => {
+                                // 检查是否配置了API
+                                const apiKey = localStorage.getItem('hive_llm_api_key') || '';
+                                const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
+                                const model = localStorage.getItem('hive_llm_model') || '';
+                                if (!apiKey || !apiUrl || !model) {
+                                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
+                                        '请配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"大语言模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                                    if (typeof window.showConfigPromptModal === 'function') {
+                                        window.showConfigPromptModal(pleaseConfigureText);
+                                    } else {
+                                        showToast(pleaseConfigureText, 'warning');
+                                    }
+                                    return;
+                                }
+                                showRandomPromptModal();
+                            }
+                        };
+
+                        // AI对话选项
+                        const aiChatMenuOption = {
+                            content: `🐝 ${getMenuText('contextMenu.aiChat')}`,
+                            callback: () => {
+                                // 检查是否配置了API
+                                const apiKey = localStorage.getItem('hive_llm_api_key') || '';
+                                const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
+                                const model = localStorage.getItem('hive_llm_model') || '';
+                                if (!apiKey || !apiUrl || !model) {
+                                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
+                                        '请配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"大语言模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                                    if (typeof window.showConfigPromptModal === 'function') {
+                                        window.showConfigPromptModal(pleaseConfigureText);
+                                    } else {
+                                        showToast(pleaseConfigureText, 'warning');
+                                    }
+                                    return;
+                                }
+                                if (typeof window.showAIChatModal === 'function') {
+                                    window.showAIChatModal();
+                                }
+                            }
+                        };
+
+                        // 提示词扩写选项
+                        const expandPromptMenuOption = {
+                            content: `🐝 ${getMenuText('contextMenu.expandPrompt')}`,
+                            callback: () => {
+                                // 检查是否配置了API
+                                const apiKey = localStorage.getItem('hive_llm_api_key') || '';
+                                const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
+                                const model = localStorage.getItem('hive_llm_model') || '';
+                                if (!apiKey || !apiUrl || !model) {
+                                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
+                                        '请配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"大语言模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                                    if (typeof window.showConfigPromptModal === 'function') {
+                                        window.showConfigPromptModal(pleaseConfigureText);
+                                    } else {
+                                        showToast(pleaseConfigureText, 'warning');
+                                    }
+                                    return;
+                                }
+                                if (typeof window.showExpandPromptModal === 'function') {
+                                    window.showExpandPromptModal();
+                                }
+                            }
+                        };
+
+                        // 翻译选项
+                        const translateMenuOption = {
+                            content: `🐝 ${getMenuText('contextMenu.translate')}`,
+                            callback: () => {
+                                // 检查是否配置了API
+                                const apiKey = localStorage.getItem('hive_llm_api_key') || '';
+                                const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
+                                const model = localStorage.getItem('hive_llm_model') || '';
+                                if (!apiKey || !apiUrl || !model) {
+                                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
+                                        '请配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"大语言模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                                    if (typeof window.showConfigPromptModal === 'function') {
+                                        window.showConfigPromptModal(pleaseConfigureText);
+                                    } else {
+                                        showToast(pleaseConfigureText, 'warning');
+                                    }
+                                    return;
+                                }
+                                if (typeof window.showTranslateModal === 'function') {
+                                    window.showTranslateModal();
+                                }
+                            }
+                        };
+
+                        // 画布右键：提示词扩写、随机提示词、AI对话、翻译放在最前面
+                        // 顺序：提示词扩写、随机提示词、与AI对话、翻译
+                        return [expandPromptMenuOption, randomPromptMenuOption, aiChatMenuOption, translateMenuOption, null, ...originalOptions];
+                    };
+                    console.log('🐝 Hive: Canvas context menu registered successfully');
+                }
+
+                // 注册图片右键菜单：提示词反推
+                // 只在侧边栏内的图片上添加右键菜单，节点内的图片通过getExtraMenuOptions处理
+                const setupImageContextMenu = () => {
+                    // 检查图片是否在侧边栏内
+                    const isInSidebar = (element) => {
+                        const sidebarEl = document.getElementById('hive-sidebar');
+                        if (!sidebarEl) {
+                            return false;
+                        }
+                        return sidebarEl.contains(element);
+                    };
+                    
+                    // 为图片元素添加右键菜单事件
+                    const addContextMenuToImage = (imgElement) => {
+                        // 检查是否已经添加过事件监听器
+                        if (imgElement._hiveContextMenuAdded) {
+                            return;
+                        }
+                        
+                        // 只处理侧边栏内的图片
+                        if (!isInSidebar(imgElement)) {
+                            return;
+                        }
+                        
+                        // 检查是否有有效的src
+                        if (!imgElement.src) {
+                            return;
+                        }
+                        
+                        // 标记已添加
+                        imgElement._hiveContextMenuAdded = true;
+                        
+                        // 添加右键菜单事件（使用capture阶段，确保能捕获事件）
+                        const handleContextMenu = function(e) {
+                            // 再次检查是否在侧边栏内（防止动态移动）
+                            if (!isInSidebar(imgElement)) {
+                                return;
+                            }
+                            
+                            // 检查是否是有效的图片URL
+                            if (!imgElement.src || (imgElement.src.startsWith('data:') && imgElement.src.length < 100)) {
+                                return;
+                            }
+                            
+                            // 阻止默认右键菜单和事件传播
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.stopImmediatePropagation();
+                            
+                            // 移除现有的自定义菜单
+                            const existingMenu = document.getElementById('hive-image-context-menu');
+                            if (existingMenu) {
+                                existingMenu.remove();
+                            }
+                            
+                            const getText = (key, fallback = '') => {
+                                if (typeof window !== 'undefined' && typeof window.t === 'function') {
+                                    return window.t(key);
+                                }
+                                return fallback;
+                            };
+                            
+                            const reversePromptText = getText('contextMenu.reversePrompt', 'Hive 提示词反推');
+                            
+                            // 创建菜单
+                            const menu = document.createElement('div');
+                            menu.id = 'hive-image-context-menu';
+                            menu.style.cssText = `
+                                position: fixed;
+                                left: ${e.clientX}px;
+                                top: ${e.clientY}px;
+                                background-color: var(--comfy-menu-bg);
+                                border: 1px solid var(--border-color);
+                                border-radius: 4px;
+                                padding: 4px 0;
+                                z-index: 10001;
+                                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+                                min-width: 200px;
+                            `;
+                            
+                            const menuItem = document.createElement('div');
+                            menuItem.style.cssText = `
+                                padding: 8px 16px;
+                                color: var(--input-text);
+                                cursor: pointer;
+                                font-size: 14px;
+                            `;
+                            menuItem.textContent = `🐝 ${reversePromptText}`;
+                            menuItem.onmouseenter = () => {
+                                menuItem.style.backgroundColor = 'var(--comfy-input-bg)';
+                            };
+                            menuItem.onmouseleave = () => {
+                                menuItem.style.backgroundColor = 'transparent';
+                            };
+                            menuItem.onclick = () => {
+                                menu.remove();
+                                // 检查是否配置了视觉模型API
+                                const visionApiKey = localStorage.getItem('hive_vision_api_key') || '';
+                                const visionApiUrl = localStorage.getItem('hive_vision_api_url') || '';
+                                const visionModel = localStorage.getItem('hive_vision_model') || '';
+                                if (!visionApiKey || !visionApiUrl || !visionModel) {
+                                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
+                                        '请先在设置界面配置视觉模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"视觉模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                                    showToast(pleaseConfigureText, 'warning');
+                                    return;
+                                }
+                                showReversePromptModal(imgElement.src);
+                            };
+                            
+                            menu.appendChild(menuItem);
+                            document.body.appendChild(menu);
+                            
+                            // 点击其他地方关闭菜单
+                            const closeMenu = (e2) => {
+                                if (!menu.contains(e2.target)) {
+                                    menu.remove();
+                                    document.removeEventListener('click', closeMenu);
+                                    document.removeEventListener('contextmenu', closeMenu);
+                                }
+                            };
+                            
+                            setTimeout(() => {
+                                document.addEventListener('click', closeMenu, true);
+                                document.addEventListener('contextmenu', closeMenu, true);
+                            }, 100);
+                        };
+                        
+                        // 在bubble阶段添加监听器（不使用capture），确保在全局监听器之后执行
+                        // 但需要确保事件能到达这里
+                        imgElement.addEventListener('contextmenu', handleContextMenu, false);
+                    };
+                    
+                    // 为所有现有的图片元素添加右键菜单
+                    const addToExistingImages = () => {
+                        const sidebarEl = document.getElementById('hive-sidebar');
+                        if (!sidebarEl) {
+                            // 如果侧边栏还没加载，稍后重试
+                            setTimeout(addToExistingImages, 1000);
+                            return;
+                        }
+                        
+                        // 直接在侧边栏内查找图片，更准确
+                        const sidebarImages = sidebarEl.querySelectorAll('img');
+                        sidebarImages.forEach(img => {
+                            if (img.src && !img._hiveContextMenuAdded) {
+                                addContextMenuToImage(img);
+                            }
+                        });
+                    };
+                    
+                    // 初始添加（延迟一点，确保侧边栏已加载）
+                    setTimeout(() => {
+                        addToExistingImages();
+                    }, 500);
+                    
+                    // 定期检查新添加的图片（因为侧边栏内容可能是动态加载的）
+                    setInterval(() => {
+                        const sidebarEl = document.getElementById('hive-sidebar');
+                        if (sidebarEl) {
+                            const sidebarImages = sidebarEl.querySelectorAll('img');
+                            sidebarImages.forEach(img => {
+                                if (img.src && !img._hiveContextMenuAdded) {
+                                    addContextMenuToImage(img);
+                                }
+                            });
+                        }
+                    }, 2000);
+                    
+                    // 在MutationObserver中也直接检查侧边栏内的图片
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            mutation.addedNodes.forEach((node) => {
+                                if (node.nodeType === 1) { // Element node
+                                    const sidebarEl = document.getElementById('hive-sidebar');
+                                    if (!sidebarEl) return;
+                                    
+                                    // 检查节点本身是否是图片
+                                    if (node.tagName === 'IMG' && sidebarEl.contains(node)) {
+                                        addContextMenuToImage(node);
+                                    }
+                                    // 检查节点内是否包含图片
+                                    const images = node.querySelectorAll && node.querySelectorAll('img');
+                                    if (images) {
+                                        images.forEach(img => {
+                                            if (sidebarEl.contains(img) && !img._hiveContextMenuAdded) {
+                                                addContextMenuToImage(img);
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+                        });
+                    });
+                    
+                    // 开始观察
+                    observer.observe(document.body, {
+                        childList: true,
+                        subtree: true
+                    });
+                    
+                };
+                
+                // 延迟执行，确保DOM已加载
+                setTimeout(setupImageContextMenu, 1000);
+                
+            } catch (error) {
+                console.error('🐝 Hive: Failed to register context menus:', error);
+            }
+            }, 1000);
+        }
+
+        // 在节点定义注册前添加图片右键菜单
+        // 这个钩子会在所有节点类型注册前执行
 
         // 监听自定义事件：从库中下载模型
         window.addEventListener('hive-download-model', async (event) => {
@@ -3785,6 +8117,85 @@ if (sendBtn && inputTextarea) {
                 }
             }
         }, 1000);
+    },
+    
+    // 在节点定义注册前添加图片右键菜单
+    async beforeRegisterNodeDef(nodeType, nodeData, app) {
+        // 重写 getExtraMenuOptions 方法，为有图片的节点添加"提示词反推"菜单项
+        // 这样节点里的图片也可以使用提示词反推功能
+        const getExtraMenuOptions = nodeType.prototype.getExtraMenuOptions;
+        nodeType.prototype.getExtraMenuOptions = function (_, options) {
+            const r = getExtraMenuOptions?.apply?.(this, arguments);
+            
+            // 检查节点是否有图片
+            let img;
+            if (this.imageIndex != null && this.imgs && this.imgs[this.imageIndex]) {
+                // 有选中的图片
+                img = this.imgs[this.imageIndex];
+            } else if (this.overIndex != null && this.imgs && this.imgs[this.overIndex]) {
+                // 没有选中但有悬停的图片
+                img = this.imgs[this.overIndex];
+            } else if (this.imgs && this.imgs.length > 0) {
+                // 有图片数组，使用第一张
+                img = this.imgs[0];
+            }
+            
+            if (img && img.src) {
+                // 获取翻译文本
+                const getText = (key, fallback = '') => {
+                    if (typeof window !== 'undefined' && typeof window.t === 'function') {
+                        return window.t(key);
+                    }
+                    return fallback;
+                };
+                
+                const reversePromptText = getText('contextMenu.reversePrompt', 'Hive 提示词反推');
+                
+                // 查找第一个Hive菜单项的位置，将提示词反推插入到最前面
+                let firstHiveMenuPos = options.findIndex((o) => 
+                    o && o.content && o.content.includes('🐝')
+                );
+                
+                // 提示词反推插入到最前面（位置0）
+                // 如果找到了其他Hive菜单项，插入到它们之前
+                let pos = 0;
+                if (firstHiveMenuPos !== -1) {
+                    pos = firstHiveMenuPos;
+                }
+                
+                // 插入"提示词反推"菜单项到最前面
+                options.splice(pos, 0, {
+                    content: `🐝 ${reversePromptText}`,
+                    callback: async () => {
+                        // 检查是否配置了视觉模型API
+                        const visionApiKey = localStorage.getItem('hive_vision_api_key') || '';
+                        const visionApiUrl = localStorage.getItem('hive_vision_api_url') || '';
+                        const visionModel = localStorage.getItem('hive_vision_model') || '';
+                        
+                        if (!visionApiKey || !visionApiUrl || !visionModel) {
+                            const pleaseConfigureText = getText('settings.pleaseConfigureVision', 
+                                '请配置视觉模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"视觉模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                            if (typeof window.showConfigPromptModal === 'function') {
+                                window.showConfigPromptModal(pleaseConfigureText);
+                            } else {
+                                // 回退到toast提示
+                                showToast(pleaseConfigureText, 'warning');
+                            }
+                            return;
+                        }
+                        
+                        // 显示提示词反推弹层
+                        if (typeof window.showReversePromptModal === 'function') {
+                            window.showReversePromptModal(img.src);
+                        } else {
+                            console.error('🐝 Hive: showReversePromptModal function not found. Make sure it is accessible.');
+                        }
+                    },
+                });
+            }
+            
+            return r;
+        };
     }
 });
 
@@ -3795,7 +8206,7 @@ document.addEventListener('beforeunload', function() {
 });
 
 function closeAllModals() {
-    const modals = document.querySelectorAll('#hive-lightbox, #hive-video-modal, #hive-model-detail, #hive-settings-modal, #hive-confirm-modal, #hive-node-install-modal, #hive-node-installer-guide-modal, #hive-model-downloader-guide-modal');
+    const modals = document.querySelectorAll('#hive-lightbox, #hive-video-modal, #hive-model-detail, #hive-settings-modal, #hive-confirm-modal, #hive-node-install-modal, #hive-node-installer-guide-modal, #hive-model-downloader-guide-modal, #hive-feedback-modal, #hive-llm-config-modal');
     modals.forEach(m => m.remove());
 }
 
