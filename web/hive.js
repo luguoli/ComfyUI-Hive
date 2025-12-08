@@ -26,6 +26,37 @@ function getText(key, fallbackEn = '') {
     return fallbackEn || key;
 }
 
+// 解析当前脚本路径，动态获取插件基准路径（避免依赖目录名）
+function detectHiveBaseUrl() {
+    const defaultBase = '/extensions/ComfyUI-Hive/';
+    try {
+        const tryGetScript = () => {
+            if (document.currentScript && document.currentScript.src) return document.currentScript;
+            const scripts = Array.from(document.getElementsByTagName('script'));
+            return scripts.find(s => s.src && (s.src.includes('/hive.js') || s.src.includes('ComfyUI-Hive')));
+        };
+        const script = tryGetScript();
+        if (script && script.src) {
+            const url = new URL(script.src, window.location.href);
+            const match = url.pathname.match(/\/extensions\/[^/]+\//);
+            if (match && match[0]) {
+                return match[0];
+            }
+            // 兜底：去掉文件名，保留目录
+            const basePath = url.pathname.replace(/[^/]+$/, '');
+            return basePath.endsWith('/') ? basePath : `${basePath}/`;
+        }
+    } catch (err) {
+        console.warn('🐝 Hive: Failed to detect base url, fallback to default', err);
+    }
+    return defaultBase;
+}
+
+const HIVE_BASE_URL = detectHiveBaseUrl();
+if (typeof window !== 'undefined') {
+    window.HIVE_BASE_URL = HIVE_BASE_URL;
+}
+
 // 检查配置
 if (!SUPABASE_URL || !SUPABASE_KEY) {
     const configWarnText = typeof window !== 'undefined' && typeof window.t === 'function' 
@@ -321,13 +352,13 @@ app.registerExtension({
         // Load CSS
         const link = document.createElement("link");
         link.rel = "stylesheet";
-        link.href = "/extensions/ComfyUI-Hive/css/hive.css";
+        link.href = `${HIVE_BASE_URL}css/hive.css`;
         document.head.appendChild(link);
 
         // 加载语言文件（必须先加载）
         if (!window.HIVE_I18N) {
             const i18nScript = document.createElement('script');
-            i18nScript.src = '/extensions/ComfyUI-Hive/js/hive_i18n.js';
+            i18nScript.src = `${HIVE_BASE_URL}js/hive_i18n.js`;
             i18nScript.async = false; // 同步加载以确保可用
             i18nScript.onload = () => {
                 // 语言文件加载完成后，更新 UI 文本
@@ -360,7 +391,7 @@ app.registerExtension({
                 }
 
                 // 使用本地文件路径（注意：WEB_DIRECTORY 指向 ./web，所以路径不包含 web/）
-                const localLibPath = '/extensions/ComfyUI-Hive/lib/supabase-js@2.js';
+                const localLibPath = `${HIVE_BASE_URL}lib/supabase-js@2.js`;
                 console.log('🐝 Hive: Loading Supabase library from local path:', localLibPath);
 
                 // 检查是否已经加载过这个脚本
@@ -411,7 +442,7 @@ app.registerExtension({
                     return;
                 }
 
-                const localLibPath = '/extensions/ComfyUI-Hive/lib/translate.js';
+                const localLibPath = `${HIVE_BASE_URL}lib/translate.js`;
                 const existingScript = document.querySelector(`script[src="${localLibPath}"]`);
                 if (existingScript) {
                     setTimeout(() => {
@@ -3915,7 +3946,7 @@ if (sendBtn && inputTextarea) {
             // 不再显示弹层，而是直接加载模板工作流
             try {
                 // 读取模板工作流文件
-                const templatePath = '/extensions/ComfyUI-Hive/res/HiveModelDownloader.json';
+                const templatePath = `${HIVE_BASE_URL}res/HiveModelDownloader.json`;
                 const response = await fetch(templatePath);
                 
                 if (!response.ok) {
@@ -3996,7 +4027,7 @@ if (sendBtn && inputTextarea) {
             // 不再显示弹层，而是直接加载模板工作流
             try {
                 // 读取模板工作流文件
-                const templatePath = '/extensions/ComfyUI-Hive/res/HiveNodeInstaller.json';
+                const templatePath = `${HIVE_BASE_URL}res/HiveNodeInstaller.json`;
                 const response = await fetch(templatePath);
                 
                 if (!response.ok) {
@@ -4702,8 +4733,10 @@ Generate only the prompt text, without any explanations or additional text.`;
 
                 // 如果没有配置，提示用户去设置界面配置
                 if (!apiKey || !apiUrl) {
-                    const errorMsg = getText('settings.pleaseConfigureLLM', 
-                        '请先在设置界面配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 选择提供商并填写API Key\n4. 选择模型后保存配置');
+        const errorMsg = getText(
+            'settings.pleaseConfigureLLM', 
+            '🤖 大语言模型 API 未填写。请先在浏览器右侧点击 🐝Hive 打开侧边栏，点击右上角齿轮 ⚙️ 打开设置，然后点击 🤖 配置大模型API 按钮填写 API Key 与模型并保存后再试'
+        );
                     throw new Error(errorMsg);
                 }
 
@@ -5310,8 +5343,10 @@ Generate only the prompt text, without any explanations or additional text.`;
                 let errorMessage = error.message || '未知错误';
                 // 如果是API未配置的错误，显示配置提示
                 if (errorMessage.includes('请先在设置界面配置') || errorMessage.includes('API未配置')) {
-                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
-                        '请先在设置界面配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 选择提供商并填写API Key\n4. 选择模型后保存配置');
+                    const pleaseConfigureText = getText(
+                        'settings.pleaseConfigureLLM', 
+                        '🤖 大语言模型 API 未填写。请先在浏览器右侧点击 🐝Hive 打开侧边栏，点击右上角齿轮 ⚙️ 打开设置，然后点击 🤖 配置大模型API 按钮填写 API Key 与模型并保存后再试'
+                    );
                     loadingDiv.innerHTML = `
                         <div style="
                             color: var(--descrip-text);
@@ -5350,7 +5385,7 @@ Generate only the prompt text, without any explanations or additional text.`;
                 // 如果没有配置，提示用户去设置界面配置
                 if (!visionApiKey || !visionApiUrl || !visionModel) {
                     const errorMsg = getText('settings.pleaseConfigureVision', 
-                        '请配置视觉模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"视觉模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                        '未填写视觉模型API。请先在浏览器右侧点击 🐝Hive 打开侧边栏，点击右上角齿轮 ⚙️ 打开设置，然后点击 🤖 配置大模型API 按钮，在视觉模型配置中填写 API Key 和模型后保存再试');
                     throw new Error(errorMsg);
                 }
 
@@ -7624,6 +7659,10 @@ Return only the expanded prompt, without any explanations, prefixes, or suffixes
                 // 重写 getNodeMenuOptions 方法
                 if (typeof LGraphCanvas !== 'undefined' && LGraphCanvas.prototype.getNodeMenuOptions) {
                     const originalGetNodeMenuOptions = LGraphCanvas.prototype.getNodeMenuOptions;
+                    const llmConfigGuideText = getText(
+                        'settings.pleaseConfigureLLM',
+                        '🤖 大语言模型 API 未填写。请先在浏览器右侧点击 🐝Hive 打开侧边栏，点击右上角齿轮 ⚙️ 打开设置，然后点击 🤖 配置大模型API 按钮填写 API Key 与模型并保存后再试'
+                    );
                     LGraphCanvas.prototype.getNodeMenuOptions = function(node) {
                         // 调用原始方法获取默认菜单选项
                         const originalOptions = originalGetNodeMenuOptions.apply(this, arguments);
@@ -7646,8 +7685,7 @@ Return only the expanded prompt, without any explanations, prefixes, or suffixes
                                 const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
                                 const model = localStorage.getItem('hive_llm_model') || '';
                                 if (!apiKey || !apiUrl || !model) {
-                                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
-                                        '请配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"大语言模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                                    const pleaseConfigureText = llmConfigGuideText;
                                     if (typeof window.showConfigPromptModal === 'function') {
                                         window.showConfigPromptModal(pleaseConfigureText);
                                     } else {
@@ -7668,8 +7706,7 @@ Return only the expanded prompt, without any explanations, prefixes, or suffixes
                                 const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
                                 const model = localStorage.getItem('hive_llm_model') || '';
                                 if (!apiKey || !apiUrl || !model) {
-                                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
-                                        '请配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"大语言模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                                    const pleaseConfigureText = llmConfigGuideText;
                                     if (typeof window.showConfigPromptModal === 'function') {
                                         window.showConfigPromptModal(pleaseConfigureText);
                                     } else {
@@ -7692,8 +7729,7 @@ Return only the expanded prompt, without any explanations, prefixes, or suffixes
                                 const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
                                 const model = localStorage.getItem('hive_llm_model') || '';
                                 if (!apiKey || !apiUrl || !model) {
-                                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
-                                        '请配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"大语言模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                                    const pleaseConfigureText = llmConfigGuideText;
                                     if (typeof window.showConfigPromptModal === 'function') {
                                         window.showConfigPromptModal(pleaseConfigureText);
                                     } else {
@@ -7716,8 +7752,7 @@ Return only the expanded prompt, without any explanations, prefixes, or suffixes
                                 const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
                                 const model = localStorage.getItem('hive_llm_model') || '';
                                 if (!apiKey || !apiUrl || !model) {
-                                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
-                                        '请配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"大语言模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                                    const pleaseConfigureText = llmConfigGuideText;
                                     if (typeof window.showConfigPromptModal === 'function') {
                                         window.showConfigPromptModal(pleaseConfigureText);
                                     } else {
@@ -7742,6 +7777,10 @@ Return only the expanded prompt, without any explanations, prefixes, or suffixes
                 // 注册画布右键菜单：随机提示词
                 if (typeof LGraphCanvas !== 'undefined' && LGraphCanvas.prototype.getCanvasMenuOptions) {
                     const originalGetCanvasMenuOptions = LGraphCanvas.prototype.getCanvasMenuOptions;
+                    const llmConfigGuideText = getText(
+                        'settings.pleaseConfigureLLM',
+                        '未填写大模型API。请先在浏览器右侧点击 🐝Hive 打开侧边栏，点击右上角齿轮 ⚙️ 打开设置，然后点击 🤖 配置大模型API 按钮填写 API Key 与模型并保存后再试'
+                    );
                     LGraphCanvas.prototype.getCanvasMenuOptions = function() {
                         const originalOptions = originalGetCanvasMenuOptions.apply(this, arguments);
                         
@@ -7753,8 +7792,7 @@ Return only the expanded prompt, without any explanations, prefixes, or suffixes
                                 const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
                                 const model = localStorage.getItem('hive_llm_model') || '';
                                 if (!apiKey || !apiUrl || !model) {
-                                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
-                                        '请配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"大语言模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                                    const pleaseConfigureText = llmConfigGuideText;
                                     if (typeof window.showConfigPromptModal === 'function') {
                                         window.showConfigPromptModal(pleaseConfigureText);
                                     } else {
@@ -7775,8 +7813,7 @@ Return only the expanded prompt, without any explanations, prefixes, or suffixes
                                 const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
                                 const model = localStorage.getItem('hive_llm_model') || '';
                                 if (!apiKey || !apiUrl || !model) {
-                                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
-                                        '请配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"大语言模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                                    const pleaseConfigureText = llmConfigGuideText;
                                     if (typeof window.showConfigPromptModal === 'function') {
                                         window.showConfigPromptModal(pleaseConfigureText);
                                     } else {
@@ -7799,8 +7836,7 @@ Return only the expanded prompt, without any explanations, prefixes, or suffixes
                                 const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
                                 const model = localStorage.getItem('hive_llm_model') || '';
                                 if (!apiKey || !apiUrl || !model) {
-                                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
-                                        '请配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"大语言模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                                    const pleaseConfigureText = llmConfigGuideText;
                                     if (typeof window.showConfigPromptModal === 'function') {
                                         window.showConfigPromptModal(pleaseConfigureText);
                                     } else {
@@ -7823,8 +7859,7 @@ Return only the expanded prompt, without any explanations, prefixes, or suffixes
                                 const apiUrl = localStorage.getItem('hive_llm_api_url') || '';
                                 const model = localStorage.getItem('hive_llm_model') || '';
                                 if (!apiKey || !apiUrl || !model) {
-                                    const pleaseConfigureText = getText('settings.pleaseConfigureLLM', 
-                                        '请配置大语言模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"大语言模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                                    const pleaseConfigureText = llmConfigGuideText;
                                     if (typeof window.showConfigPromptModal === 'function') {
                                         window.showConfigPromptModal(pleaseConfigureText);
                                     } else {
@@ -8174,7 +8209,7 @@ Return only the expanded prompt, without any explanations, prefixes, or suffixes
                         
                         if (!visionApiKey || !visionApiUrl || !visionModel) {
                             const pleaseConfigureText = getText('settings.pleaseConfigureVision', 
-                                '请配置视觉模型API。\n\n操作步骤：\n1. 点击侧边栏的设置按钮\n2. 点击"配置大模型API"按钮\n3. 在"视觉模型API配置"中选择提供商并填写API Key\n4. 选择模型后保存配置');
+                        '👁️ 视觉模型 API 未填写。请先在浏览器右侧点击 🐝Hive 打开侧边栏，点击右上角齿轮 ⚙️ 打开设置，然后点击 🤖 配置大模型API 按钮，在视觉模型配置中填写 API Key 和模型后保存再试');
                             if (typeof window.showConfigPromptModal === 'function') {
                                 window.showConfigPromptModal(pleaseConfigureText);
                             } else {

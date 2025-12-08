@@ -7,6 +7,33 @@ let supabaseKey = null;
 let currentUser = null;
 let profileCache = new Map(); // 头像昵称缓存
 
+// 解析当前脚本路径，动态获取插件基准路径（避免依赖目录名）
+function detectHiveBaseUrl() {
+    const defaultBase = '/extensions/ComfyUI-Hive/';
+    if (typeof window !== 'undefined' && window.HIVE_BASE_URL) {
+        return window.HIVE_BASE_URL;
+    }
+    try {
+        const scripts = Array.from(document.getElementsByTagName('script'));
+        const script = (document.currentScript && document.currentScript.src ? document.currentScript : null) ||
+            scripts.find(s => s.src && (s.src.includes('/hive_data.js') || s.src.includes('ComfyUI-Hive')));
+        if (script && script.src) {
+            const url = new URL(script.src, window.location.href);
+            const match = url.pathname.match(/\/extensions\/[^/]+\//);
+            if (match && match[0]) {
+                return match[0];
+            }
+            const basePath = url.pathname.replace(/[^/]+$/, '');
+            return basePath.endsWith('/') ? basePath : `${basePath}/`;
+        }
+    } catch (err) {
+        console.warn('🐝 Hive: Failed to detect base url in data layer, fallback to default', err);
+    }
+    return defaultBase;
+}
+
+const HIVE_BASE_URL = detectHiveBaseUrl();
+
 // 计算文件的SHA-256哈希值（用于生成文件名）
 // 注意：浏览器不支持MD5，使用SHA-256代替
 async function calculateFileHash(file) {
@@ -57,7 +84,7 @@ async function loadNSFWModel() {
         if (window.nsfwjs && window.nsfwjs.load) {
             console.log('🐝 Hive: NSFWJS library already loaded, loading model from local path...');
             // 使用本地模型路径（注意：WEB_DIRECTORY 指向 ./web，所以路径不包含 web/）
-            const localModelPath = '/extensions/ComfyUI-Hive/models/nsfw/';
+            const localModelPath = `${HIVE_BASE_URL}models/nsfw/`;
             
             window.nsfwjs.load(localModelPath)
                 .then(model => {
@@ -86,7 +113,7 @@ async function loadNSFWModel() {
                 }
                 
                 const tfScript = document.createElement('script');
-                tfScript.src = '/extensions/ComfyUI-Hive/lib/tf.min.js';
+                tfScript.src = `${HIVE_BASE_URL}lib/tf.min.js`;
                 tfScript.onload = () => {
                     console.log('🐝 Hive: TensorFlow.js loaded from local path');
                     resolve();
@@ -101,7 +128,7 @@ async function loadNSFWModel() {
         
         // 加载本地 NSFWJS 库文件
         loadTensorFlow().then(() => {
-            const localLibPath = '/extensions/ComfyUI-Hive/lib/nsfwjs.min.js';
+            const localLibPath = `${HIVE_BASE_URL}lib/nsfwjs.min.js`;
             console.log('🐝 Hive: Loading NSFWJS library from local path:', localLibPath);
             
             const script = document.createElement('script');
@@ -112,7 +139,7 @@ async function loadNSFWModel() {
                     if (window.nsfwjs && window.nsfwjs.load) {
                         console.log('🐝 Hive: NSFWJS library loaded, loading model from local path...');
                         // 使用本地模型路径（注意：WEB_DIRECTORY 指向 ./web，所以路径不包含 web/）
-                        const localModelPath = '/extensions/ComfyUI-Hive/models/nsfw/';
+                        const localModelPath = `${HIVE_BASE_URL}models/nsfw/`;
                         
                         window.nsfwjs.load(localModelPath)
                             .then(model => {

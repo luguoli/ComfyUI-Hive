@@ -3,10 +3,37 @@
 
 import { app } from "/scripts/app.js";
 
+// 解析当前脚本路径，动态获取插件基准路径（避免依赖目录名）
+function detectHiveBaseUrl() {
+    const defaultBase = '/extensions/ComfyUI-Hive/';
+    if (typeof window !== 'undefined' && window.HIVE_BASE_URL) {
+        return window.HIVE_BASE_URL;
+    }
+    try {
+        const scripts = Array.from(document.getElementsByTagName('script'));
+        const script = (document.currentScript && document.currentScript.src ? document.currentScript : null) ||
+            scripts.find(s => s.src && (s.src.includes('/hive_nodes.js') || s.src.includes('ComfyUI-Hive')));
+        if (script && script.src) {
+            const url = new URL(script.src, window.location.href);
+            const match = url.pathname.match(/\/extensions\/[^/]+\//);
+            if (match && match[0]) {
+                return match[0];
+            }
+            const basePath = url.pathname.replace(/[^/]+$/, '');
+            return basePath.endsWith('/') ? basePath : `${basePath}/`;
+        }
+    } catch (err) {
+        console.warn('🐝 Hive: Failed to detect base url in nodes layer, fallback to default', err);
+    }
+    return defaultBase;
+}
+
+const HIVE_BASE_URL = detectHiveBaseUrl();
+
 // 加载 CSS
 const link = document.createElement("link");
 link.rel = "stylesheet";
-link.href = "/extensions/ComfyUI-Hive/css/hive-nodes.css";
+link.href = `${HIVE_BASE_URL}css/hive-nodes.css`;
 document.head.appendChild(link);
 
 
