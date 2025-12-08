@@ -5372,12 +5372,12 @@ Generate only the prompt text, without any explanations or additional text.`;
             closeBtn.onclick = cleanup;
             closeBtn2.onclick = cleanup;
 
-            // 点击遮罩层关闭
-            overlay.onclick = (e) => {
-                if (e.target === overlay) {
-                    cleanup();
-                }
-            };
+            // 移除底部关闭按钮，点击弹窗外的空白区域不关闭
+            // overlay.onclick = (e) => {
+            //     if (e.target === overlay) {
+            //         cleanup();
+            //     }
+            // };
 
             // 设置复制按钮（根据语言显示不同的复制按钮）
             const setupCopyButtons = (promptData) => {
@@ -7390,12 +7390,12 @@ Return only the expanded prompt, without any explanations, prefixes, or suffixes
             closeBtn.onclick = cleanup;
             closeBtn2.onclick = cleanup;
 
-            // 点击遮罩层关闭
-            overlay.onclick = (e) => {
-                if (e.target === overlay) {
-                    cleanup();
-                }
-            };
+            // 移除底部关闭按钮，点击弹窗外的空白区域不关闭
+            // overlay.onclick = (e) => {
+            //     if (e.target === overlay) {
+            //         cleanup();
+            //     }
+            // };
 
             // 设置复制按钮（根据语言显示不同的复制按钮）
             const setupCopyButtons = (promptData) => {
