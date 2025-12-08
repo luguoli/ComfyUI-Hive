@@ -12,7 +12,7 @@ const SUPABASE_URL = 'https://mgkcodofcjbuxpejdusf.supabase.co';  // 请填入�
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1na2NvZG9mY2pidXhwZWpkdXNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3ODI5MzMsImV4cCI6MjA4MDM1ODkzM30.KKTXgF8xg6CkfLmFYiEomtNmWJBZUPDeDzhpYTs9ST0';   // 请填入您的 Supabase 匿名密钥 (anon key)
 
 // 插件版本号
-const PLUGIN_VERSION = '1.0.5';
+const PLUGIN_VERSION = '1.0.6';
 
 // 全局变量 - 按钮需要访问
 let isInitialized = false; // 是否已初始化

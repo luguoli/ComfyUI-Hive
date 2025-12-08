@@ -1,7 +1,7 @@
 [project]
 name = "ComfyUI-Hive"
 description = "ComfyUI-Hive/Club - Github: https://github.com/luguoli - ComfyUI-Hive is a community plugin designed for ComfyUI users, allowing you to:Real-time communication with global users, share flowworks, Browse, search quality works, workflows, nodes, models, and tutorials, Easy resource access, Built-in mirror addresses, built-in node installer and model downloader."
-version = "1.0.5"
+version = "1.0.6"
 license = {file = "LICENSE"} 
 # classifiers = [
 #     # For OS-independent nodes (works on all operating systems)
