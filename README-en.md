@@ -15,13 +15,13 @@ ComfyUI-Hive is a community plugin designed for ComfyUI users, allowing you to:
 - 🎨 **Discover creative inspiration**: Browse, search, and favorite quality works, workflows, nodes, models, and tutorials from the community
 - 📥 **Easy resource access**: Can't access node GitHub links? Can't access HuggingFace? Don't know how to install nodes? Don't know how to download models? Don't worry! Built-in mirror addresses, built-in node installer and model downloader, one-click download models and install nodes, no manual operation required
 - 🔄 **Share workflows**: Don't know how to generate that image you like? Load it to the canvas with one click
+- 🖱️ **Powerful context menu**: Right-click to use expand prompt, random prompt, AI chat, translate, reverse prompt, and fix node features
 
 #### If this project helps you, please give it a ⭐Star — it lets me know there are humans out there using it!
 
 ## 📋 Table of Contents
 
 - [What Can I Do?](#what-can-i-do)
-- [Feature Examples](#feature-examples)
 - [Quick Start](#quick-start)
 - [Feature Details](#feature-details)
 - [FAQ](#faq)
@@ -58,6 +58,8 @@ When you want to share a workflow, there are two ways:
 
 Other users just need to click the "Load Workflow" button to load the workflow to their ComfyUI canvas with one click - extremely convenient!
 
+![alt text](images/1-1-en.png)
+
 ### 📥 Easy Model Download
 
 No more manual model file downloads! Use the model downloader node:
@@ -72,6 +74,10 @@ The system will automatically handle everything, including:
 - Automatic save to correct location
 - Detect if file already exists to avoid duplicate downloads
 
+<img src="images/16-en.png" width="500" style="margin-left: 30px;" />
+<img src="images/17.png" width="500" style="margin-left: 30px;" />
+
+
 ### 📦 One-Click Node Installation
 
 Found a useful node recommended by others? Use the node installer, just:
@@ -83,11 +89,40 @@ Found a useful node recommended by others? Use the node installer, just:
 
 Supports both Git repositories and ZIP files. The system will automatically identify and handle them.
 
+<img src="images/18-en.png" width="500" style="margin-left: 30px;" />
+<img src="images/19.png" width="500" style="margin-left: 30px;" />
 
-## Feature Examples
+### 🖱️ Context Menu Features
 
-![alt text](images/1-1-en.png)
-![alt text](images/1-2-en.png)
+Hive provides rich context menu features to make your workflow more efficient:
+
+<img src="images/20-en.png" width="150" style="margin-left: 30px;" />
+
+1. Expand Prompt
+
+<img src="images/10-en.png" width="500" style="margin-left: 30px;" />
+
+2. Random Prompt
+
+<img src="images/11-en.png" width="500" style="margin-left: 30px;" />
+
+3. AI Chat
+
+<img src="images/12-en.png" width="500" style="margin-left: 30px;" />
+
+4. Translate
+
+<img src="images/13-en.png" width="500" style="margin-left: 30px;" />
+
+5. Fix Node
+
+<img src="images/14-en.png" width="500" style="margin-left: 30px;" />
+
+6. Reverse Prompt
+
+<img src="images/15-en.png" width="500" style="margin-left: 30px;" />
+
+All AI features require configuring the Large Language Model API first (configure in settings).
 
 ## Quick Start
 
@@ -187,6 +222,48 @@ Click the **🐝 Hive** button to open the Hive Hub sidebar and start using all 
 **Tips**:
 - If node already exists, the system will automatically try to update
 - Installing Git repositories requires Git tool to be installed on the system
+
+### 🖱️ Context Menu Features
+
+Hive provides rich context menu features to make your workflow more efficient:
+
+1. **🐝 Hive Expand Prompt**
+   - Enter a prompt, and AI will automatically expand it to generate more detailed and rich prompts
+   - Supports expanding prompts in both Chinese and English
+   - After expansion, you can directly copy and use the result
+
+2. **🐝 Hive Random Prompt**
+   - Generate random prompts with one click to inspire creativity
+   - Generated prompts include both Chinese and English versions
+   - Perfect for scenarios where you need quick prompt inspiration
+
+3. **🐝 Hive AI Chat**
+   - Chat with AI to get creative suggestions and help
+   - Can ask questions about ComfyUI usage, workflow optimization, etc.
+   - Supports multi-turn conversations
+
+4. **🐝 Hive Translate**
+   - Quickly translate prompts or text content
+   - Supports translation between Chinese and English
+   - Translation results can be directly copied and used
+
+5. **🐝 Hive Fix Node**
+   - When a node is missing or unusable, right-click on the node
+   - The system will automatically search for the node's installation address
+   - If there are multiple installation addresses, you can choose the appropriate one to install
+   - One-click fix for missing nodes
+
+6. **🐝 Hive Reverse Prompt**
+   - Analyze image content and automatically generate corresponding prompts
+   - Supports generating prompts in both Chinese and English
+   - Generated prompts can be directly copied and used
+   - Perfect for scenarios where you need to reverse-engineer workflows from images
+
+**Note**: Using AI-related features requires configuring the Large Language Model API first. Configuration method:
+1. Click the settings button in the sidebar
+2. Click the "Configure LLM API" button
+3. In "Large Language Model API Configuration", select a provider and fill in the API Key
+4. Select a model and save the configuration
 
 ### ⚙️ Personalization Settings
 
