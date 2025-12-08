@@ -20,29 +20,62 @@ function t(key, params = {}) {
 
 import { getCurrentUser } from './hive_data.js';
 
-// 解析当前脚本路径，动态获取插件基准路径（避免依赖目录名）
+// 解析当前脚本路径，动态获取插件基准路径（避免依赖目录名，支持 -main 或任意目录名）
 function detectHiveBaseUrl() {
-    const defaultBase = '/extensions/ComfyUI-Hive/';
-    if (typeof window !== 'undefined' && window.HIVE_BASE_URL) {
-        return window.HIVE_BASE_URL;
+    const defaults = ['/extensions/ComfyUI-Hive/', '/extensions/ComfyUI-Hive-main/'];
+    const normalize = (pathname) => {
+        if (!pathname.endsWith('/')) pathname += '/';
+        if (pathname.endsWith('/web/')) {
+            pathname = pathname.slice(0, -4);
+        }
+        if (pathname.match(/\/(js|css|lib|models|res)\/$/)) {
+            pathname = pathname.replace(/\/[^/]+\/$/, '/');
+        }
+        return pathname;
+    };
+    const collectCandidates = () => {
+        const list = [];
+        if (typeof import.meta !== 'undefined' && import.meta.url) {
+            list.push(import.meta.url);
+        }
+        if (document.currentScript && document.currentScript.src) list.push(document.currentScript.src);
+        const scripts = Array.from(document.getElementsByTagName('script'));
+        scripts.forEach(s => {
+            if (!s.src) return;
+            if (s.src.includes('hive_ui.js') || s.src.includes('hive.js') || s.src.includes('ComfyUI-Hive')) {
+                list.push(s.src);
+            }
+        });
+        if (typeof window !== 'undefined' && window.HIVE_BASE_URL) {
+            list.unshift(window.HIVE_BASE_URL);
+        }
+        return list;
+    };
+    if (typeof window !== 'undefined' && typeof window.HIVE_BASE_URL === 'string' && window.HIVE_BASE_URL) {
+        return normalize(window.HIVE_BASE_URL);
     }
     try {
-        const scripts = Array.from(document.getElementsByTagName('script'));
-        const script = (document.currentScript && document.currentScript.src ? document.currentScript : null) ||
-            scripts.find(s => s.src && (s.src.includes('/hive_ui.js') || s.src.includes('ComfyUI-Hive')));
-        if (script && script.src) {
-            const url = new URL(script.src, window.location.href);
-            const match = url.pathname.match(/\/extensions\/[^/]+\//);
-            if (match && match[0]) {
-                return match[0];
+        const candidates = collectCandidates();
+        for (const src of candidates) {
+            if (!src) continue;
+            if (src.startsWith('/extensions/') && src.endsWith('/')) {
+                return src;
             }
-            const basePath = url.pathname.replace(/[^/]+$/, '');
-            return basePath.endsWith('/') ? basePath : `${basePath}/`;
+            const url = new URL(src, window.location.href);
+            let basePath = url.pathname.replace(/[^/]+$/, '');
+            basePath = normalize(basePath);
+            if (basePath !== '/') {
+                return basePath;
+            }
+        }
+        const match = window.location.pathname.match(/\/extensions\/[^/]+\//);
+        if (match && match[0]) {
+            return normalize(match[0]);
         }
     } catch (err) {
         console.warn('🐝 Hive: Failed to detect base url in UI layer, fallback to default', err);
     }
-    return defaultBase;
+    return defaults[0];
 }
 
 const HIVE_BASE_URL = detectHiveBaseUrl();

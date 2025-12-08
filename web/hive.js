@@ -26,30 +26,62 @@ function getText(key, fallbackEn = '') {
     return fallbackEn || key;
 }
 
-// 解析当前脚本路径，动态获取插件基准路径（避免依赖目录名）
+// 解析当前脚本路径，动态获取插件基准路径（避免依赖目录名，支持 -main 或任意目录名）
 function detectHiveBaseUrl() {
-    const defaultBase = '/extensions/ComfyUI-Hive/';
-    try {
-        const tryGetScript = () => {
-            if (document.currentScript && document.currentScript.src) return document.currentScript;
-            const scripts = Array.from(document.getElementsByTagName('script'));
-            return scripts.find(s => s.src && (s.src.includes('/hive.js') || s.src.includes('ComfyUI-Hive')));
-        };
-        const script = tryGetScript();
-        if (script && script.src) {
-            const url = new URL(script.src, window.location.href);
-            const match = url.pathname.match(/\/extensions\/[^/]+\//);
-            if (match && match[0]) {
-                return match[0];
+    const defaults = ['/extensions/ComfyUI-Hive/', '/extensions/ComfyUI-Hive-main/'];
+    const normalize = (pathname) => {
+        if (!pathname.endsWith('/')) pathname += '/';
+        // 如果路径里包含 /web/，去掉 web 层级以适配资源路径
+        if (pathname.endsWith('/web/')) {
+            pathname = pathname.slice(0, -4);
+        }
+        // 如果脚本在 /js/、/css/、/lib/ 下，向上回退一层到插件根
+        if (pathname.match(/\/(js|css|lib|models|res)\/$/)) {
+            pathname = pathname.replace(/\/[^/]+\/$/, '/');
+        }
+        return pathname;
+    };
+    const collectCandidates = () => {
+        const list = [];
+        // 1) import.meta.url (模块场景)
+        if (typeof import.meta !== 'undefined' && import.meta.url) {
+            list.push(import.meta.url);
+        }
+        // 2) currentScript
+        if (document.currentScript && document.currentScript.src) list.push(document.currentScript.src);
+        // 3) 页面已有的 script
+        const scripts = Array.from(document.getElementsByTagName('script'));
+        scripts.forEach(s => {
+            if (!s.src) return;
+            if (s.src.includes('hive.js') || s.src.includes('ComfyUI-Hive')) {
+                list.push(s.src);
             }
-            // 兜底：去掉文件名，保留目录
-            const basePath = url.pathname.replace(/[^/]+$/, '');
-            return basePath.endsWith('/') ? basePath : `${basePath}/`;
+        });
+        return list;
+    };
+    if (typeof window !== 'undefined' && typeof window.HIVE_BASE_URL === 'string' && window.HIVE_BASE_URL) {
+        return normalize(window.HIVE_BASE_URL);
+    }
+    try {
+        const candidates = collectCandidates();
+        for (const src of candidates) {
+            const url = new URL(src, window.location.href);
+            let basePath = url.pathname.replace(/[^/]+$/, '');
+            basePath = normalize(basePath);
+            if (basePath !== '/') {
+                return basePath;
+            }
+        }
+        // 额外尝试从页面 URL 中匹配 /extensions/<name>/
+        const match = window.location.pathname.match(/\/extensions\/[^/]+\//);
+        if (match && match[0]) {
+            return normalize(match[0]);
         }
     } catch (err) {
         console.warn('🐝 Hive: Failed to detect base url, fallback to default', err);
     }
-    return defaultBase;
+    // 回退：优先 -main，再原名
+    return defaults[0];
 }
 
 const HIVE_BASE_URL = detectHiveBaseUrl();
