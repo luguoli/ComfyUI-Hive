@@ -136,15 +136,13 @@ class HiveModelDownloader:
             print(f"保存到 / Saving to: {save_path}")
             status_msg = f"开始下载 / Starting download: {url}\n"
             
-            # 使用多线程下载以提高速度
-            session = requests.Session()
-            session.headers.update({
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            })
-            
-            # 先获取文件信息
-            head_response = session.head(url, allow_redirects=True, timeout=30)
-            head_response.raise_for_status()
+            # 先获取文件信息（使用临时session，避免连接复用问题）
+            with requests.Session() as tmp_session:
+                tmp_session.headers.update({
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                })
+                head_response = tmp_session.head(url, allow_redirects=True, timeout=30)
+                head_response.raise_for_status()
             
             # 获取文件大小
             total_size = int(head_response.headers.get('content-length', 0))
@@ -154,40 +152,192 @@ class HiveModelDownloader:
             
             if total_size > 0 and supports_range:
                 # 使用多线程下载（支持 Range 请求）
-                num_threads = min(8, max(4, total_size // (10 * 1024 * 1024)))  # 根据文件大小决定线程数
+                # 对于超大文件（>10GB），限制线程数避免过多临时文件
+                # 每个线程处理约500MB-1GB的数据比较合理
+                if total_size > 10 * 1024 * 1024 * 1024:  # 大于10GB
+                    num_threads = min(8, max(4, total_size // (1024 * 1024 * 1024)))  # 每GB一个线程，最多8个
+                else:
+                    num_threads = min(8, max(4, total_size // (10 * 1024 * 1024)))  # 每10MB一个线程，最多8个
                 chunk_size = total_size // num_threads
                 
                 print(f"使用 {num_threads} 个线程进行多线程下载... / Using {num_threads} threads for multi-threaded download...")
                 
                 # 创建临时文件来存储各个分片
-                temp_files = []
+                temp_files = {}  # 使用字典，以 chunk_id 为键
                 threads = []
                 downloaded_chunks = [0] * num_threads
                 lock = threading.Lock()
                 
                 def download_chunk(chunk_id, start, end):
                     """下载文件的一个分片"""
+                    # 【关键修复】每个线程创建独立的Session，避免连接池竞争和死锁
+                    local_session = requests.Session()
+                    local_session.headers.update({
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    })
+                    
+                    temp_file_path = None
+                    temp_file = None
                     try:
                         headers = {'Range': f'bytes={start}-{end}'}
-                        response = session.get(url, headers=headers, stream=True, timeout=(30, 300))
-                        response.raise_for_status()
+                        expected_size = end - start + 1
                         
-                        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=f'.part{chunk_id}')
-                        temp_files.append(temp_file.name)
+                        # 将临时文件放在目标目录附近，避免系统临时目录空间不足的问题
+                        # 对于超大文件，这样可以更好地控制临时文件位置
+                        temp_dir = os.path.dirname(save_path)
+                        temp_file_path = os.path.join(temp_dir, f'.{os.path.basename(save_path)}.part{chunk_id}.tmp')
                         
-                        chunk_downloaded = 0
-                        for chunk in response.iter_content(chunk_size=1024 * 1024):  # 1MB chunks
-                            if chunk:
-                                temp_file.write(chunk)
-                                chunk_downloaded += len(chunk)
-                                with lock:
-                                    downloaded_chunks[chunk_id] = chunk_downloaded
+                        temp_file = open(temp_file_path, 'wb')
                         
-                        temp_file.close()
-                        return chunk_id, True
+                        # 使用锁保护字典写入操作
+                        with lock:
+                            temp_files[chunk_id] = temp_file_path
+                        
+                        # 对于中等大小的分片（<100MB），不使用 stream，直接获取全部内容
+                        # 这样可以避免流式读取可能的阻塞问题
+                        if expected_size < 100 * 1024 * 1024:  # 小于100MB
+                            # 不使用 stream=True，直接获取完整响应
+                            response = local_session.get(url, headers=headers, stream=False, timeout=(30, 300))
+                            response.raise_for_status()
+                            
+                            # 检查响应状态码
+                            if response.status_code not in [200, 206]:
+                                raise Exception(f"分片 {chunk_id} 响应状态码错误: {response.status_code} / Chunk {chunk_id} response status code error: {response.status_code}")
+                            
+                            content = response.content
+                            if not content or len(content) == 0:
+                                raise Exception(f"分片 {chunk_id} 响应内容为空 / Chunk {chunk_id} response content is empty")
+                            
+                            chunk_downloaded = len(content)
+                            temp_file.write(content)
+                            temp_file.flush()
+                            
+                            # 更新进度
+                            with lock:
+                                downloaded_chunks[chunk_id] = chunk_downloaded
+                        else:
+                            # 对于大分片（>=100MB），统一使用流式读取
+                            # 之前的直接读取方式对于大文件可能会阻塞，所以改为统一使用流式下载
+                            # 根据分片大小动态调整超时时间
+                            min_speed_mbps = 1.0  # 最低1MB/s
+                            estimated_time = (expected_size / (1024 * 1024)) / min_speed_mbps  # 秒
+                            # 连接超时60秒，读取超时为估算时间的2倍，最少300秒，最多1800秒（30分钟）
+                            read_timeout = max(300, min(1800, int(estimated_time * 2)))
+                            chunk_timeout = (60, read_timeout)
+                            
+                            response = local_session.get(url, headers=headers, stream=True, timeout=chunk_timeout)
+                            response.raise_for_status()
+                            
+                            # 检查响应状态码
+                            if response.status_code not in [200, 206]:
+                                raise Exception(f"分片 {chunk_id} 响应状态码错误: {response.status_code} / Chunk {chunk_id} response status code error: {response.status_code}")
+                            
+                            # 检查Content-Range头，确保响应是正确的范围
+                            content_range = response.headers.get('Content-Range', '')
+                            if content_range and chunk_id == 0:
+                                # 验证第一个分片的范围是否正确
+                                if 'bytes 0-' not in content_range:
+                                    print(f"[警告] 分片0的Content-Range可能异常: {content_range} / [Warning] Chunk 0 Content-Range may be abnormal: {content_range}")
+                            
+                            chunk_downloaded = 0
+                            # 根据分片大小调整更新间隔：大文件更新频率可以低一些
+                            if expected_size > 1024 * 1024 * 1024:  # >1GB
+                                update_interval = 50 * 1024 * 1024  # 每50MB更新一次进度
+                                flush_interval = 100 * 1024 * 1024  # 每100MB刷新一次（减少IO）
+                            else:
+                                update_interval = 5 * 1024 * 1024  # 每5MB更新一次进度
+                                flush_interval = 20 * 1024 * 1024  # 每20MB刷新一次
+                            
+                            last_update_size = 0
+                            last_flush_size = 0
+                            
+                            # 使用 iter_content 流式读取
+                            # 统一使用1MB块大小，避免过大Buffer触发防火墙流量整形，提高稳定性
+                            iter_chunk_size = 1024 * 1024  # 统一使用1MB块
+                            has_data = False
+                            last_chunk_time = time.time()  # 记录最后一次收到数据的时间
+                            chunk_read_timeout = 120  # 如果120秒没有收到新数据块，认为连接可能中断
+                            
+                            # 对于第一个分片，立即更新进度（即使只有很少的数据），确保进度可见
+                            first_chunk_received = False
+                            
+                            for chunk in response.iter_content(chunk_size=iter_chunk_size):
+                                current_time = time.time()
+                                if chunk:
+                                    has_data = True
+                                    last_chunk_time = current_time
+                                    temp_file.write(chunk)
+                                    chunk_downloaded += len(chunk)
+                                    
+                                    # 对于第一个分片的第一个数据块，立即更新进度
+                                    if chunk_id == 0 and not first_chunk_received:
+                                        with lock:
+                                            downloaded_chunks[chunk_id] = chunk_downloaded
+                                        first_chunk_received = True
+                                    
+                                    # 每次收到数据都检查是否需要刷新和更新进度
+                                    if chunk_downloaded - last_flush_size >= flush_interval:
+                                        temp_file.flush()
+                                        last_flush_size = chunk_downloaded
+                                    
+                                    # 更频繁地更新进度，特别是对于前几个数据块
+                                    # 前10MB每1MB更新一次，之后按正常间隔
+                                    force_update = chunk_downloaded < 10 * 1024 * 1024 and (chunk_downloaded - last_update_size >= 1024 * 1024)
+                                    if force_update or chunk_downloaded - last_update_size >= update_interval:
+                                        with lock:
+                                            downloaded_chunks[chunk_id] = chunk_downloaded
+                                        last_update_size = chunk_downloaded
+                                else:
+                                    # 如果收到空块，检查是否超时
+                                    if has_data and current_time - last_chunk_time > chunk_read_timeout:
+                                        raise Exception(f"分片 {chunk_id} 读取超时（{chunk_read_timeout}秒未收到数据，已下载 {chunk_downloaded / 1024 / 1024:.2f} MB） / Chunk {chunk_id} read timeout ({chunk_read_timeout}s no data, downloaded {chunk_downloaded / 1024 / 1024:.2f} MB)")
+                            
+                            if not has_data or chunk_downloaded == 0:
+                                raise Exception(f"分片 {chunk_id} 未下载到任何数据 / Chunk {chunk_id} downloaded no data")
+                            
+                            # 最后刷新并更新进度
+                            temp_file.flush()
+                            with lock:
+                                downloaded_chunks[chunk_id] = chunk_downloaded
+                        
+                        # 最后刷新并更新最终进度（对于流式下载，进度已在循环中更新；对于直接读取，进度也已更新）
+                        if temp_file:
+                            temp_file.flush()
+                        
+                        # 关闭文件
+                        if temp_file:
+                            temp_file.close()
+                        
+                        # 验证分片大小
+                        actual_size = os.path.getsize(temp_file_path)
+                        if actual_size != expected_size:
+                            raise Exception(f"分片 {chunk_id} 大小不匹配: 期望 {expected_size} 字节，实际 {actual_size} 字节 / Chunk {chunk_id} size mismatch: expected {expected_size} bytes, got {actual_size} bytes")
+                        
+                        return chunk_id, True, temp_file_path
                     except Exception as e:
-                        print(f"分片 {chunk_id} 下载失败 / Chunk {chunk_id} download failed: {str(e)}")
-                        return chunk_id, False
+                        error_detail = f"分片 {chunk_id} 下载失败: {str(e)} / Chunk {chunk_id} download failed: {str(e)}"
+                        print(f"[错误] {error_detail}")
+                        import traceback
+                        traceback.print_exc()  # 打印完整堆栈跟踪
+                        # 确保文件已关闭
+                        if temp_file:
+                            try:
+                                temp_file.close()
+                            except:
+                                pass
+                        # 清理失败的临时文件
+                        if temp_file_path and os.path.exists(temp_file_path):
+                            try:
+                                os.unlink(temp_file_path)
+                            except:
+                                pass
+                        return chunk_id, False, None
+                    finally:
+                        # 【关键修复】务必关闭独立的Session，释放连接资源
+                        try:
+                            local_session.close()
+                        except:
+                            pass
                 
                 # 启动多线程下载
                 with ThreadPoolExecutor(max_workers=num_threads) as executor:
@@ -200,10 +350,49 @@ class HiveModelDownloader:
                     
                     # 显示进度并实时写入进度文件（供前端读取）
                     last_progress = 0
+                    last_total_downloaded = 0
                     progress_updates = []
+                    stall_count = 0  # 检测是否卡住
+                    check_count = 0  # 循环计数器，用于给初始下载一些缓冲时间
+                    min_check_cycles = 15  # 至少循环15次（约5秒）后才开始检测停滞，给下载启动时间
+                    
                     while any(not f.done() for f in futures):
-                        total_downloaded = sum(downloaded_chunks)
+                        # 使用锁读取进度数组，确保数据一致性
+                        with lock:
+                            total_downloaded = sum(downloaded_chunks)
+                        
                         progress = (total_downloaded / total_size * 100) if total_size > 0 else 0
+                        check_count += 1
+                        
+                        # 只在有实际进度后，并且已经过了初始缓冲期，才检测停滞
+                        has_progress = total_downloaded > 0
+                        past_initial_period = check_count >= min_check_cycles
+                        
+                        # 检测进度是否停滞（超过15秒没有变化，且已经有了一些进度）
+                        if has_progress and past_initial_period and total_downloaded == last_total_downloaded:
+                            stall_count += 1
+                            # 只有超过15秒（约45个循环）没有进展才警告
+                            if stall_count >= 45:  # 15秒（45 * 0.33秒）
+                                # 显示每个线程的状态
+                                with lock:
+                                    status_info = []
+                                    for i in range(num_threads):
+                                        chunk_start = i * chunk_size
+                                        chunk_end = chunk_start + chunk_size - 1 if i < num_threads - 1 else total_size - 1
+                                        chunk_total = chunk_end - chunk_start + 1
+                                        chunk_progress = (downloaded_chunks[i] / chunk_total * 100) if chunk_total > 0 else 0
+                                        is_done = futures[i].done()
+                                        chunk_mb = downloaded_chunks[i] / 1024 / 1024
+                                        total_mb = chunk_total / 1024 / 1024
+                                        status_info.append(f"T{i}:{chunk_progress:.0f}%({chunk_mb:.1f}/{total_mb:.1f}MB){'✓' if is_done else '▶'}")
+                                    # 只在有实际卡住的分片时才显示警告（不是所有线程都完成了）
+                                    if any(not futures[i].done() for i in range(num_threads)):
+                                        print(f"\n⚠️ 进度可能停滞 / Progress may be stalled: {' | '.join(status_info)}")
+                                
+                                stall_count = 0  # 重置计数器
+                        else:
+                            stall_count = 0
+                            last_total_downloaded = total_downloaded
                         
                         if int(progress) != last_progress:
                             progress_text = f"下载进度 / Download progress: {progress:.1f}% ({total_downloaded / 1024 / 1024:.2f} MB / {total_size / 1024 / 1024:.2f} MB)"
@@ -215,56 +404,106 @@ class HiveModelDownloader:
                             if len(progress_updates) > 10:
                                 progress_updates.pop(0)  # 只保留最近10条
                         
-                        time.sleep(0.2)  # 更频繁地更新进度（每0.2秒）
+                        time.sleep(0.33)  # 约每0.33秒更新一次（更频繁以检测停滞）
                     
                     # 等待所有线程完成
                     results = [f.result() for f in futures]
                     
                     # 检查是否所有分片都下载成功
-                    if not all(result[1] for result in results):
-                        raise Exception("部分分片下载失败 / Some chunks failed to download")
+                    failed_chunks = [r[0] for r in results if not r[1]]
+                    if failed_chunks:
+                        # 清理所有临时文件
+                        for i in range(num_threads):
+                            if i in temp_files:
+                                try:
+                                    os.unlink(temp_files[i])
+                                except:
+                                    pass
+                        raise Exception(f"部分分片下载失败 / Some chunks failed to download: {failed_chunks}")
                 
                 print()  # 换行
                 
-                # 合并分片
+                # 合并分片（按 chunk_id 顺序合并，确保文件顺序正确）
                 print("合并下载的分片... / Merging downloaded chunks...")
-                with open(save_path, 'wb') as f:
+                try:
+                    # 使用流式合并，避免大文件一次性加载到内存
+                    chunk_copy_size = 64 * 1024 * 1024  # 每次复制64MB，适合大文件
+                    with open(save_path, 'wb') as f:
+                        for i in range(num_threads):
+                            if i not in temp_files:
+                                raise Exception(f"分片 {i} 的临时文件不存在 / Temporary file for chunk {i} does not exist")
+                            temp_file_path = temp_files[i]
+                            if not os.path.exists(temp_file_path):
+                                raise Exception(f"分片 {i} 的临时文件不存在 / Temporary file for chunk {i} does not exist: {temp_file_path}")
+                            
+                            # 流式复制，避免一次性加载大文件到内存
+                            with open(temp_file_path, 'rb') as tf:
+                                while True:
+                                    chunk_data = tf.read(chunk_copy_size)
+                                    if not chunk_data:
+                                        break
+                                    f.write(chunk_data)
+                            
+                            # 删除临时文件
+                            os.unlink(temp_file_path)
+                    
+                    # 验证最终文件大小
+                    final_size = os.path.getsize(save_path)
+                    if final_size != total_size:
+                        raise Exception(f"文件大小不匹配: 期望 {total_size} 字节，实际 {final_size} 字节 / File size mismatch: expected {total_size} bytes, got {final_size} bytes")
+                    
+                except Exception as e:
+                    # 清理所有临时文件
                     for i in range(num_threads):
-                        temp_file_path = temp_files[i]
-                        with open(temp_file_path, 'rb') as tf:
-                            f.write(tf.read())
-                        os.unlink(temp_file_path)  # 删除临时文件
+                        if i in temp_files:
+                            try:
+                                if os.path.exists(temp_files[i]):
+                                    os.unlink(temp_files[i])
+                            except:
+                                pass
+                    # 如果最终文件已创建但不完整，删除它
+                    if os.path.exists(save_path):
+                        try:
+                            os.unlink(save_path)
+                        except:
+                            pass
+                    raise
                 
                 
             else:
                 # 单线程下载（不支持 Range 或文件大小未知）
                 print("使用单线程下载... / Using single-threaded download...")
-                response = session.get(url, stream=True, timeout=(30, 300))
-                response.raise_for_status()
-                
-                downloaded_size = 0
-                block_size = 4 * 1024 * 1024  # 4MB 块大小
-                
-                with open(save_path, 'wb') as f:
-                    if total_size > 0:
-                        last_write_time = 0
-                        with tqdm(total=total_size, unit='B', unit_scale=True, desc=filename) as pbar:
+                # 创建独立的Session用于单线程下载
+                with requests.Session() as single_session:
+                    single_session.headers.update({
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    })
+                    response = single_session.get(url, stream=True, timeout=(30, 300))
+                    response.raise_for_status()
+                    
+                    downloaded_size = 0
+                    block_size = 4 * 1024 * 1024  # 4MB 块大小
+                    
+                    with open(save_path, 'wb') as f:
+                        if total_size > 0:
+                            last_write_time = 0
+                            with tqdm(total=total_size, unit='B', unit_scale=True, desc=filename) as pbar:
+                                for chunk in response.iter_content(chunk_size=block_size):
+                                    if chunk:
+                                        f.write(chunk)
+                                        downloaded_size += len(chunk)
+                                        pbar.update(len(chunk))
+                                        progress = (downloaded_size / total_size * 100) if total_size > 0 else 0
+                                        progress_text = f"下载进度 / Download progress: {progress:.1f}% ({downloaded_size / 1024 / 1024:.2f} MB / {total_size / 1024 / 1024:.2f} MB)"
+                                        print(f"\r{progress_text}", end='', flush=True)
+                                        
+                        else:
                             for chunk in response.iter_content(chunk_size=block_size):
                                 if chunk:
                                     f.write(chunk)
                                     downloaded_size += len(chunk)
-                                    pbar.update(len(chunk))
-                                    progress = (downloaded_size / total_size * 100) if total_size > 0 else 0
-                                    progress_text = f"下载进度 / Download progress: {progress:.1f}% ({downloaded_size / 1024 / 1024:.2f} MB / {total_size / 1024 / 1024:.2f} MB)"
-                                    print(f"\r{progress_text}", end='', flush=True)
-                                    
-                    else:
-                        for chunk in response.iter_content(chunk_size=block_size):
-                            if chunk:
-                                f.write(chunk)
-                                downloaded_size += len(chunk)
-                                print(f"\r已下载 / Downloaded: {downloaded_size / 1024 / 1024:.2f} MB", end='', flush=True)
-                        print()  # 换行
+                                    print(f"\r已下载 / Downloaded: {downloaded_size / 1024 / 1024:.2f} MB", end='', flush=True)
+                            print()  # 换行
             
             print(f"✓ 下载完成 / Download completed: {save_path}")
             print("⚠️ 请重启 ComfyUI 以使新下载的模型生效 / Please restart ComfyUI for the newly downloaded model to take effect")
