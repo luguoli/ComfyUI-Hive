@@ -12,7 +12,7 @@ function getText(key, fallback = '') {
 // 获取当前语言
 function getCurrentLanguage() {
     try {
-        const lang = localStorage.getItem('hive_language') || 
+        const lang = localStorage.getItem('hive_lang') || 
                      (typeof navigator !== 'undefined' && navigator.language && navigator.language.startsWith('zh') ? 'zh' : 'en');
         return lang;
     } catch (e) {
