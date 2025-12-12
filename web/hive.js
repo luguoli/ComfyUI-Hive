@@ -10,7 +10,7 @@ import "./js/hive_i18n.js";
 
 
 // 插件版本号
-const PLUGIN_VERSION = '1.0.8';
+const PLUGIN_VERSION = '1.0.9';
 
 
 const SUPABASE_URL = 'https://mgkcodofcjbuxpejdusf.supabase.co';

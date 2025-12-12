@@ -15,7 +15,7 @@ ComfyUI-Hive is a community plugin designed for ComfyUI users, allowing you to:
 - 🎨 **Discover creative inspiration**: Browse, search, and favorite quality works, workflows, nodes, models, and tutorials from the community
 - 📥 **Easy resource access**: Can't access node GitHub links? Can't access HuggingFace? Don't know how to install nodes? Don't know how to download models? Don't worry! Built-in mirror addresses, built-in node installer and model downloader, one-click download models and install nodes, no manual operation required
 - 🔄 **Share workflows**: Don't know how to generate that image you like? Load it to the canvas with one click
-- 🖱️ **Powerful context menu**: Right-click to use expand prompt, random prompt, AI chat, translate, reverse prompt, and fix node features
+- 🖱️ **Powerful context menu**: Right-click to use expand prompt, random prompt, photo prompt generator, prompt favorite, AI chat, translate, reverse prompt, and fix node features
 
 #### If this project helps you, please give it a ⭐Star — it lets me know there are humans out there using it!
 
@@ -106,19 +106,27 @@ Hive provides rich context menu features to make your workflow more efficient:
 
 <img src="images/11-en.png" width="500" style="margin-left: 30px;" />
 
-3. AI Chat
+3. Photo Prompt Generator
+
+<img src="images/21-en.png" width="800" style="margin-left: 30px;" />
+
+4. Prompt Favorite, Collect and manage commonly used prompts with category management, edit/delete, export/import, category filtering, and more to build your personal prompt library.
+
+<img src="images/22-en.png" width="700" style="margin-left: 30px;" />
+
+5. AI Chat
 
 <img src="images/12-en.png" width="500" style="margin-left: 30px;" />
 
-4. Translate
+6. Translate
 
 <img src="images/13-en.png" width="500" style="margin-left: 30px;" />
 
-5. Fix Node
+7. Fix Node
 
 <img src="images/14-en.png" width="500" style="margin-left: 30px;" />
 
-6. Reverse Prompt
+8. Reverse Prompt
 
 <img src="images/15-en.png" width="500" style="margin-left: 30px;" />
 
@@ -237,23 +245,39 @@ Hive provides rich context menu features to make your workflow more efficient:
    - Generated prompts include both Chinese and English versions
    - Perfect for scenarios where you need quick prompt inspiration
 
-3. **🐝 Hive AI Chat**
+3. **🐝 Hive Photo Prompt Generator**
+   - Professional photography-style prompt generation tool
+   - Supports rich photography parameter settings: location, person, age, gender, hairstyle, makeup, clothing, pose, orientation, lighting, lens, camera, style, time, weather, etc.
+   - Supports photography technical parameters: ISO, aperture, shutter speed, color temperature, white balance, depth of field, etc.
+   - Can save and load presets for easy reuse
+   - Supports random settings and recommended settings for quick prompt generation
+   - Generated prompts can be directly copied and used
+
+4. **🐝 Hive Prompt Favorite**
+   - Collect and manage commonly used prompts
+   - Supports category management, create multiple categories to organize favorites
+   - Supports editing and deleting favorites, update content anytime
+   - Supports category filtering to quickly find needed prompts
+   - Supports export and import for easy backup and sharing
+   - One-click copy prompt to clipboard
+
+5. **🐝 Hive AI Chat**
    - Chat with AI to get creative suggestions and help
    - Can ask questions about ComfyUI usage, workflow optimization, etc.
    - Supports multi-turn conversations
 
-4. **🐝 Hive Translate**
+6. **🐝 Hive Translate**
    - Quickly translate prompts or text content
    - Supports translation between Chinese and English
    - Translation results can be directly copied and used
 
-5. **🐝 Hive Fix Node**
+7. **🐝 Hive Fix Node**
    - When a node is missing or unusable, right-click on the node
    - The system will automatically search for the node's installation address
    - If there are multiple installation addresses, you can choose the appropriate one to install
    - One-click fix for missing nodes
 
-6. **🐝 Hive Reverse Prompt**
+8. **🐝 Hive Reverse Prompt**
    - Analyze image content and automatically generate corresponding prompts
    - Supports generating prompts in both Chinese and English
    - Generated prompts can be directly copied and used

@@ -56,6 +56,16 @@ export function registerNodeExtension() {
                 }
             };
 
+            // 提示词收藏选项
+            const promptFavoriteMenuOption = {
+                content: `🐝 ${getText('promptFavorite.promptFavorite')}`,
+                callback: () => {
+                    if (typeof window.showPromptFavoriteModal === 'function') {
+                        window.showPromptFavoriteModal();
+                    }
+                }
+            };
+
             // AI对话选项
             const aiChatMenuOption = {
                 content: `🐝 ${getText('contextMenu.aiChat')}`,
@@ -96,8 +106,8 @@ export function registerNodeExtension() {
                         }
                     };
 
-                    // 节点右键菜单：顺序：提示词扩写、随机提示词、摄影提示词生成器、与AI对话、翻译、修复节点
-                    return [expandPromptMenuOption, randomPromptMenuOption, photoPromptMenuOption, aiChatMenuOption, translateMenuOption, fixNodeMenuOption, null, ...originalOptions];
+                    // 节点右键菜单：顺序：提示词扩写、随机提示词、摄影提示词生成器、提示词收藏、与AI对话、翻译、修复节点
+                    return [expandPromptMenuOption, randomPromptMenuOption, photoPromptMenuOption, promptFavoriteMenuOption, aiChatMenuOption, translateMenuOption, fixNodeMenuOption, null, ...originalOptions];
                 };
                 console.log('🐝 Hive: Node extension registered successfully');
             } else {
@@ -109,8 +119,8 @@ export function registerNodeExtension() {
                 LGraphCanvas.prototype.getCanvasMenuOptions = function() {
                     const originalOptions = originalGetCanvasMenuOptions.apply(this, arguments);
 
-                    // 画布右键菜单：顺序：提示词扩写、随机提示词、摄影提示词生成器、与AI对话、翻译
-                    return [expandPromptMenuOption, randomPromptMenuOption, photoPromptMenuOption, aiChatMenuOption, translateMenuOption, null, ...originalOptions];
+                    // 画布右键菜单：顺序：提示词扩写、随机提示词、摄影提示词生成器、提示词收藏、与AI对话、翻译
+                    return [expandPromptMenuOption, randomPromptMenuOption, photoPromptMenuOption, promptFavoriteMenuOption, aiChatMenuOption, translateMenuOption, null, ...originalOptions];
                 };
                 console.log('🐝 Hive: Canvas extension registered successfully');
             } else {
@@ -3336,6 +3346,1542 @@ async function showAIChatModal() {
 // 导出函数供全局使用
 if (typeof window !== 'undefined') {
     window.showAIChatModal = showAIChatModal;
+}
+
+// 自定义确认弹窗
+function showCustomConfirm(message) {
+    return new Promise((resolve) => {
+        const existingConfirm = document.getElementById('hive-custom-confirm-modal');
+        if (existingConfirm) {
+            existingConfirm.remove();
+        }
+
+        const currentLang = getCurrentLanguage();
+        const isZh = currentLang === 'zh';
+        const cancelText = getText('common.cancel', '取消');
+        const confirmText = getText('common.confirm', '确认');
+
+        const confirmModal = document.createElement('div');
+        confirmModal.id = 'hive-custom-confirm-modal';
+        confirmModal.innerHTML = `
+            <div class="hive-confirm-overlay" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10003;
+            ">
+                <div class="hive-confirm-content" style="
+                    background-color: var(--comfy-menu-bg);
+                    border-radius: 8px;
+                    padding: 24px;
+                    max-width: 400px;
+                    width: 90%;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                ">
+                    <div style="
+                        margin-bottom: 20px;
+                        color: var(--input-text);
+                        font-size: 14px;
+                        line-height: 1.6;
+                    ">${message}</div>
+                    <div style="
+                        display: flex;
+                        justify-content: flex-end;
+                        gap: 12px;
+                    ">
+                        <button class="hive-custom-confirm-cancel" style="
+                            padding: 8px 16px;
+                            border-radius: 4px;
+                            border: none;
+                            background-color: var(--comfy-input-bg);
+                            color: var(--input-text);
+                            cursor: pointer;
+                            font-weight: 500;
+                            font-size: 14px;
+                        ">${cancelText}</button>
+                        <button class="hive-custom-confirm-ok" style="
+                            padding: 8px 16px;
+                            border-radius: 4px;
+                            border: none;
+                            background-color: #ffe066;
+                            color: #000;
+                            cursor: pointer;
+                            font-weight: 500;
+                            font-size: 14px;
+                        ">${confirmText}</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(confirmModal);
+
+        const okBtn = confirmModal.querySelector('.hive-custom-confirm-ok');
+        const cancelBtn = confirmModal.querySelector('.hive-custom-confirm-cancel');
+        const overlay = confirmModal.querySelector('.hive-confirm-overlay');
+
+        const cleanup = () => {
+            confirmModal.remove();
+        };
+
+        okBtn.onclick = () => {
+            cleanup();
+            resolve(true);
+        };
+
+        cancelBtn.onclick = () => {
+            cleanup();
+            resolve(false);
+        };
+
+        overlay.onclick = (e) => {
+            if (e.target === overlay) {
+                cleanup();
+                resolve(false);
+            }
+        };
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                cleanup();
+                resolve(false);
+                document.removeEventListener('keydown', handleKeyDown);
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+    });
+}
+
+// 格式化时间（总是显示日期）
+function formatFavoriteTime(timestamp) {
+    if (!timestamp) return '';
+    try {
+        const msgDate = new Date(timestamp);
+        
+        const formatTime = (date) => {
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            return `${hours}:${minutes}`;
+        };
+        
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        
+        // 总是显示日期和时间
+        return `${formatDate(msgDate)} ${formatTime(msgDate)}`;
+    } catch (error) {
+        console.warn('🐝 Hive: Failed to format time:', error);
+        return '';
+    }
+}
+
+// 显示提示词收藏弹窗
+async function showPromptFavoriteModal() {
+    // 移除现有的弹窗
+    const existingModal = document.getElementById('hive-prompt-favorite-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // 先获取语言设置
+    const currentLang = getCurrentLanguage();
+    const isZh = currentLang === 'zh';
+    
+    const titleText = getText('promptFavorite.title', '提示词收藏');
+    const addFavoriteText = getText('promptFavorite.addFavorite', '新增收藏');
+    const editFavoriteText = getText('promptFavorite.editFavorite', '编辑收藏');
+    const manageCategoriesText = getText('promptFavorite.manageCategories', '管理分类');
+    const closeText = getText('common.close', '关闭');
+    const categoryText = getText('promptFavorite.category', '分类');
+    const selectCategoryText = getText('promptFavorite.selectCategory', '选择分类');
+    const noCategoryText = getText('promptFavorite.noCategory', '无分类');
+    const promptContentText = getText('promptFavorite.promptContent', '提示词内容');
+    const enterPromptContentText = getText('promptFavorite.enterPromptContent', '请输入提示词内容');
+    const categoryNameText = getText('promptFavorite.categoryName', '分类名称');
+    const enterCategoryNameText = getText('promptFavorite.enterCategoryName', '请输入分类名称');
+    const addCategoryText = getText('promptFavorite.addCategory', '创建分类');
+    const editText = getText('promptFavorite.edit', '编辑');
+    const deleteText = getText('promptFavorite.delete', '删除');
+    const saveText = getText('promptFavorite.save', '保存');
+    const cancelText = getText('promptFavorite.cancel', '取消');
+    const copyPromptText = getText('promptFavorite.copyPrompt', '复制提示词');
+    const promptCopiedText = getText('promptFavorite.promptCopied', '提示词已复制到剪贴板');
+    const confirmDeleteFavoriteText = getText('promptFavorite.confirmDeleteFavorite', '确定要删除这条收藏吗？');
+    const favoriteDeletedText = getText('promptFavorite.favoriteDeleted', '收藏已删除');
+    const favoriteSavedText = getText('promptFavorite.favoriteSaved', '收藏已保存');
+    const favoriteUpdatedText = getText('promptFavorite.favoriteUpdated', '收藏已更新');
+    const editCategoryText = getText('promptFavorite.editCategory', '编辑分类');
+    const deleteCategoryText = getText('promptFavorite.deleteCategory', '删除分类');
+    const confirmDeleteCategoryText = getText('promptFavorite.confirmDeleteCategory', '确定要删除分类"{name}"吗？删除后该分类下的所有收藏将移至"无分类"。');
+    const categoryDeletedText = getText('promptFavorite.categoryDeleted', '分类已删除');
+    const categorySavedText = getText('promptFavorite.categorySaved', '分类已保存');
+    const categoryUpdatedText = getText('promptFavorite.categoryUpdated', '分类已更新');
+    const noFavoritesText = getText('promptFavorite.noFavorites', '暂无收藏');
+    const noCategoriesText = getText('promptFavorite.noCategories', '暂无分类');
+    const categoryNameRequiredText = getText('promptFavorite.categoryNameRequired', '请输入分类名称');
+    const promptContentRequiredText = getText('promptFavorite.promptContentRequired', '请输入提示词内容');
+    const allCategoriesText = getText('promptFavorite.allCategories', '全部');
+    const exportDataText = getText('promptFavorite.exportData', '导出');
+    const importDataText = getText('promptFavorite.importData', '导入');
+    const exportSuccessText = getText('promptFavorite.exportSuccess', '导出成功');
+    const exportFailedText = getText('promptFavorite.exportFailed', '导出失败');
+    const importSuccessText = getText('promptFavorite.importSuccess', '导入成功');
+    const importFailedText = getText('promptFavorite.importFailed', '导入失败');
+    const invalidImportDataText = getText('promptFavorite.invalidImportData', '导入数据格式无效');
+    const addTimeText = getText('promptFavorite.addTime', '添加时间');
+    const previousPageText = getText('promptFavorite.previousPage', '上一页');
+    const nextPageText = getText('promptFavorite.nextPage', '下一页');
+    const pageInfoText = getText('promptFavorite.pageInfo', '第 {page} / {totalPages} 页，共 {total} 条');
+    const importConfirmWithDuplicatesText = getText('promptFavorite.importConfirmWithDuplicates', '导入数据包含：\n- {newFavorites}条新收藏（{duplicateFavorites}条重复，将跳过）\n- {newCategories}个新分类（{duplicateCategories}个重复，将跳过）\n\n确定要导入吗？');
+    const importConfirmText = getText('promptFavorite.importConfirm', '确定要导入数据吗？这将{newFavorites}条收藏和{newCategories}个分类添加到现有数据中。');
+    const importSuccessWithDuplicatesText = getText('promptFavorite.importSuccessWithDuplicates', '导入成功！已导入{newFavorites}条收藏和{newCategories}个分类，{duplicateFavorites}条收藏和{duplicateCategories}个分类因重复已跳过。');
+
+    // 数据存储键
+    const STORAGE_KEY_FAVORITES = 'hive_prompt_favorites';
+    const STORAGE_KEY_CATEGORIES = 'hive_prompt_favorite_categories';
+
+    // 加载数据
+    const loadFavorites = () => {
+        try {
+            const data = localStorage.getItem(STORAGE_KEY_FAVORITES);
+            return data ? JSON.parse(data) : [];
+        } catch (e) {
+            console.warn('🐝 Hive: Failed to load favorites:', e);
+            return [];
+        }
+    };
+
+    const loadCategories = () => {
+        try {
+            const data = localStorage.getItem(STORAGE_KEY_CATEGORIES);
+            return data ? JSON.parse(data) : [];
+        } catch (e) {
+            console.warn('🐝 Hive: Failed to load categories:', e);
+            return [];
+        }
+    };
+
+    const saveFavorites = (favorites) => {
+        try {
+            localStorage.setItem(STORAGE_KEY_FAVORITES, JSON.stringify(favorites));
+        } catch (e) {
+            console.error('🐝 Hive: Failed to save favorites:', e);
+        }
+    };
+
+    const saveCategories = (categories) => {
+        try {
+            localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(categories));
+        } catch (e) {
+            console.error('🐝 Hive: Failed to save categories:', e);
+        }
+    };
+
+    // 初始化数据
+    let favorites = loadFavorites();
+    let categories = loadCategories();
+
+    // 分页和筛选状态
+    let currentPage = 1;
+    const pageSize = 10;
+    let selectedCategoryId = 'all'; // 'all', 'none', or category id
+
+    // 生成唯一ID
+    const generateId = () => {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    };
+
+    // 获取分类名称
+    const getCategoryName = (categoryId) => {
+        if (!categoryId) return noCategoryText;
+        const category = categories.find(c => c.id === categoryId);
+        return category ? category.name : noCategoryText;
+    };
+
+    // 重新渲染分类筛选器
+    const renderCategoryFilters = () => {
+        const filterContainer = modal.querySelector('.hive-prompt-favorite-category-filters');
+        if (!filterContainer) return;
+
+        let html = `
+            <button class="hive-prompt-favorite-category-filter" data-category-id="all" style="
+                padding: 6px 12px;
+                border: none;
+                background-color: ${selectedCategoryId === 'all' ? '#ffe066' : 'var(--comfy-menu-bg)'};
+                color: ${selectedCategoryId === 'all' ? '#000' : 'var(--input-text)'};
+                cursor: pointer;
+                font-size: 14px;
+                border-radius: 4px;
+            ">${allCategoriesText}</button>
+            <button class="hive-prompt-favorite-category-filter" data-category-id="none" style="
+                padding: 6px 12px;
+                border: none;
+                background-color: ${selectedCategoryId === 'none' ? '#ffe066' : 'var(--comfy-menu-bg)'};
+                color: ${selectedCategoryId === 'none' ? '#000' : 'var(--input-text)'};
+                cursor: pointer;
+                font-size: 14px;
+                border-radius: 4px;
+            ">${noCategoryText}</button>
+            ${categories.map(cat => `
+                <button class="hive-prompt-favorite-category-filter" data-category-id="${cat.id}" style="
+                    padding: 6px 12px;
+                    border: none;
+                    background-color: ${selectedCategoryId === cat.id ? '#ffe066' : 'var(--comfy-menu-bg)'};
+                    color: ${selectedCategoryId === cat.id ? '#000' : 'var(--input-text)'};
+                    cursor: pointer;
+                    font-size: 14px;
+                    border-radius: 4px;
+                ">${cat.name}</button>
+            `).join('')}
+        `;
+        filterContainer.innerHTML = html;
+    };
+
+    // 筛选和排序收藏
+    const getFilteredAndSortedFavorites = () => {
+        let filtered = favorites;
+        
+        // 按分类筛选
+        if (selectedCategoryId === 'none') {
+            filtered = favorites.filter(f => !f.categoryId);
+        } else if (selectedCategoryId !== 'all') {
+            filtered = favorites.filter(f => f.categoryId === selectedCategoryId);
+        }
+        
+        // 按时间排序（最新的在前）
+        filtered = filtered.sort((a, b) => {
+            const timeA = a.createdAt || 0;
+            const timeB = b.createdAt || 0;
+            return timeB - timeA;
+        });
+        
+        return filtered;
+    };
+
+    // 渲染收藏列表
+    const renderFavorites = () => {
+        const listContainer = modal.querySelector('.hive-prompt-favorite-list');
+        const paginationContainer = modal.querySelector('.hive-prompt-favorite-pagination');
+        if (!listContainer) return;
+
+        const filteredFavorites = getFilteredAndSortedFavorites();
+        const total = filteredFavorites.length;
+        const totalPages = Math.max(1, Math.ceil(total / pageSize));
+        
+        // 确保当前页在有效范围内
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+        if (currentPage < 1) {
+            currentPage = 1;
+        }
+
+        // 获取当前页的数据
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        const pageFavorites = filteredFavorites.slice(startIndex, endIndex);
+
+        let html = '';
+        
+        if (pageFavorites.length > 0) {
+            pageFavorites.forEach(fav => {
+                const categoryName = getCategoryName(fav.categoryId);
+                const timeStr = formatFavoriteTime(fav.createdAt);
+                
+                html += `
+                    <div class="hive-prompt-favorite-item" data-favorite-id="${fav.id}" style="
+                        padding: 12px;
+                        background-color: var(--comfy-menu-bg);
+                        border: 1px solid var(--border-color);
+                        border-radius: 4px;
+                        margin-bottom: 8px;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 8px;
+                    ">
+                        <div style="
+                            color: var(--input-text);
+                            font-size: 14px;
+                            line-height: 1.5;
+                            word-wrap: break-word;
+                            white-space: pre-wrap;
+                        ">${fav.content}</div>
+                        <div style="
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            gap: 12px;
+                        ">
+                            <div style="
+                                display: flex;
+                                gap: 16px;
+                                font-size: 12px;
+                                color: var(--descrip-text);
+                                flex: 1;
+                            ">
+                                <span>${categoryText}: ${categoryName}</span>
+                                <span>${addTimeText}: ${timeStr}</span>
+                            </div>
+                            <div style="
+                                display: flex;
+                                gap: 8px;
+                                flex-shrink: 0;
+                            ">
+                                <button class="hive-prompt-favorite-copy" data-favorite-id="${fav.id}" style="
+                                    padding: 4px 8px;
+                                    border: none;
+                                    background-color: var(--comfy-input-bg);
+                                    color: var(--input-text);
+                                    cursor: pointer;
+                                    font-size: 12px;
+                                    border-radius: 4px;
+                                    white-space: nowrap;
+                                ">${copyPromptText}</button>
+                                <button class="hive-prompt-favorite-edit" data-favorite-id="${fav.id}" style="
+                                    padding: 4px 8px;
+                                    border: none;
+                                    background-color: var(--comfy-input-bg);
+                                    color: var(--input-text);
+                                    cursor: pointer;
+                                    font-size: 12px;
+                                    border-radius: 4px;
+                                    white-space: nowrap;
+                                ">${editText}</button>
+                                <button class="hive-prompt-favorite-delete" data-favorite-id="${fav.id}" style="
+                                    padding: 4px 8px;
+                                    border: none;
+                                    background-color: var(--comfy-input-bg);
+                                    color: var(--input-text);
+                                    cursor: pointer;
+                                    font-size: 12px;
+                                    border-radius: 4px;
+                                    white-space: nowrap;
+                                ">${deleteText}</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        } else {
+            html = `<div style="
+                text-align: center;
+                padding: 40px;
+                color: var(--descrip-text);
+            ">${noFavoritesText}</div>`;
+        }
+
+        listContainer.innerHTML = html;
+
+        // 渲染分页
+        if (paginationContainer) {
+            let paginationHtml = '';
+            if (totalPages > 1) {
+                paginationHtml = `
+                    <div style="
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        gap: 12px;
+                        margin-top: 16px;
+                    ">
+                        <button class="hive-prompt-favorite-prev-page" style="
+                            padding: 6px 12px;
+                            border: none;
+                            background-color: ${currentPage > 1 ? 'var(--comfy-input-bg)' : 'var(--comfy-menu-bg)'};
+                            color: var(--input-text);
+                            cursor: ${currentPage > 1 ? 'pointer' : 'not-allowed'};
+                            font-size: 14px;
+                            border-radius: 4px;
+                            opacity: ${currentPage > 1 ? '1' : '0.5'};
+                        " ${currentPage <= 1 ? 'disabled' : ''}>${previousPageText}</button>
+                        <span style="
+                            color: var(--input-text);
+                            font-size: 14px;
+                        ">${pageInfoText.replace('{page}', currentPage).replace('{totalPages}', totalPages).replace('{total}', total)}</span>
+                        <button class="hive-prompt-favorite-next-page" style="
+                            padding: 6px 12px;
+                            border: none;
+                            background-color: ${currentPage < totalPages ? 'var(--comfy-input-bg)' : 'var(--comfy-menu-bg)'};
+                            color: var(--input-text);
+                            cursor: ${currentPage < totalPages ? 'pointer' : 'not-allowed'};
+                            font-size: 14px;
+                            border-radius: 4px;
+                            opacity: ${currentPage < totalPages ? '1' : '0.5'};
+                        " ${currentPage >= totalPages ? 'disabled' : ''}>${nextPageText}</button>
+                    </div>
+                `;
+            }
+            paginationContainer.innerHTML = paginationHtml;
+        }
+    };
+
+    // 渲染分类选择器
+    const renderCategorySelect = (selectElement, selectedCategoryId = null) => {
+        if (!selectElement) return;
+        
+        let html = `<option value="none">${noCategoryText}</option>`;
+        categories.forEach(cat => {
+            html += `<option value="${cat.id}" ${cat.id === selectedCategoryId ? 'selected' : ''}>${cat.name}</option>`;
+        });
+        selectElement.innerHTML = html;
+    };
+
+    // 显示新增/编辑收藏弹窗
+    const showFavoriteEditModal = (favorite = null) => {
+        const isEdit = favorite !== null;
+        const editModal = document.createElement('div');
+        editModal.id = 'hive-prompt-favorite-edit-modal';
+        editModal.innerHTML = `
+            <div class="hive-confirm-overlay" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10001;
+            ">
+                <div class="hive-confirm-content" style="
+                    background-color: var(--comfy-menu-bg);
+                    border-radius: 8px;
+                    padding: 24px;
+                    max-width: 600px;
+                    width: 90%;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                ">
+                    <div style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 20px;
+                        padding-bottom: 12px;
+                        border-bottom: 1px solid var(--border-color);
+                    ">
+                        <h3 style="
+                            margin: 0;
+                            color: var(--input-text);
+                            font-size: 18px;
+                        ">🐝 ${isEdit ? editFavoriteText : addFavoriteText}</h3>
+                        <button class="hive-prompt-favorite-edit-close" style="
+                            background: none;
+                            border: none;
+                            color: var(--input-text);
+                            font-size: 24px;
+                            cursor: pointer;
+                            padding: 0;
+                            width: 30px;
+                            height: 30px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        ">×</button>
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <label style="
+                            display: block;
+                            color: var(--input-text);
+                            font-size: 14px;
+                            font-weight: 500;
+                            margin-bottom: 8px;
+                        ">${categoryText}:</label>
+                        <select class="hive-prompt-favorite-edit-category-select" style="
+                            width: 100%;
+                            padding: 8px 12px;
+                            background-color: var(--comfy-input-bg);
+                            border: 1px solid var(--border-color);
+                            border-radius: 4px;
+                            color: var(--input-text);
+                            font-size: 14px;
+                            cursor: pointer;
+                        "></select>
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="
+                            display: block;
+                            color: var(--input-text);
+                            font-size: 14px;
+                            font-weight: 500;
+                            margin-bottom: 8px;
+                        ">${promptContentText}:</label>
+                        <textarea class="hive-prompt-favorite-edit-content" placeholder="${enterPromptContentText}" style="
+                            width: 100%;
+                            min-height: 120px;
+                            padding: 8px 12px;
+                            background-color: var(--comfy-input-bg);
+                            border: 1px solid var(--border-color);
+                            border-radius: 4px;
+                            color: var(--input-text);
+                            font-size: 14px;
+                            font-family: inherit;
+                            resize: vertical;
+                        ">${favorite ? favorite.content : ''}</textarea>
+                    </div>
+                    <div style="
+                        display: flex;
+                        justify-content: flex-end;
+                        gap: 12px;
+                    ">
+                        <button class="hive-prompt-favorite-edit-cancel" style="
+                            padding: 8px 16px;
+                            border-radius: 4px;
+                            border: none;
+                            background-color: var(--comfy-input-bg);
+                            color: var(--input-text);
+                            cursor: pointer;
+                            font-weight: 500;
+                            font-size: 14px;
+                        ">${cancelText}</button>
+                        <button class="hive-prompt-favorite-edit-save" style="
+                            padding: 8px 16px;
+                            border-radius: 4px;
+                            border: none;
+                            background-color: #ffe066;
+                            color: #000;
+                            cursor: pointer;
+                            font-weight: 500;
+                            font-size: 14px;
+                        ">${saveText}</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(editModal);
+        const categorySelect = editModal.querySelector('.hive-prompt-favorite-edit-category-select');
+        renderCategorySelect(categorySelect, favorite ? favorite.categoryId : null);
+
+        const closeBtn = editModal.querySelector('.hive-prompt-favorite-edit-close');
+        const cancelBtn = editModal.querySelector('.hive-prompt-favorite-edit-cancel');
+        const saveBtn = editModal.querySelector('.hive-prompt-favorite-edit-save');
+        const contentTextarea = editModal.querySelector('.hive-prompt-favorite-edit-content');
+
+        const cleanup = () => {
+            editModal.remove();
+        };
+
+        closeBtn.onclick = cleanup;
+        cancelBtn.onclick = cleanup;
+
+        saveBtn.onclick = async () => {
+            const content = contentTextarea.value.trim();
+            if (!content) {
+                if (typeof window.showToast === 'function') {
+                    window.showToast(promptContentRequiredText, 'warning');
+                }
+                return;
+            }
+
+            const categoryId = categorySelect.value === 'none' ? null : categorySelect.value;
+
+            if (isEdit) {
+                // 更新收藏
+                const index = favorites.findIndex(f => f.id === favorite.id);
+                if (index !== -1) {
+                    favorites[index] = {
+                        ...favorites[index],
+                        content,
+                        categoryId
+                    };
+                    saveFavorites(favorites);
+                    renderFavorites();
+                    if (typeof window.showToast === 'function') {
+                        window.showToast(favoriteUpdatedText, 'success');
+                    }
+                }
+            } else {
+                // 新增收藏
+                const newFavorite = {
+                    id: generateId(),
+                    content,
+                    categoryId,
+                    createdAt: Date.now()
+                };
+                favorites.push(newFavorite);
+                saveFavorites(favorites);
+                renderFavorites();
+                if (typeof window.showToast === 'function') {
+                    window.showToast(favoriteSavedText, 'success');
+                }
+            }
+
+            cleanup();
+        };
+
+        // Esc键关闭
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                cleanup();
+                document.removeEventListener('keydown', handleKeyDown);
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+
+        contentTextarea.focus();
+    };
+
+    // 显示分类管理弹窗
+    const showCategoryManageModal = () => {
+        const manageModal = document.createElement('div');
+        manageModal.id = 'hive-prompt-favorite-category-manage-modal';
+        manageModal.innerHTML = `
+            <div class="hive-confirm-overlay" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10001;
+            ">
+                <div class="hive-confirm-content" style="
+                    background-color: var(--comfy-menu-bg);
+                    border-radius: 8px;
+                    padding: 24px;
+                    max-width: 500px;
+                    width: 90%;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                ">
+                    <div style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 20px;
+                        padding-bottom: 12px;
+                        border-bottom: 1px solid var(--border-color);
+                    ">
+                        <h3 style="
+                            margin: 0;
+                            color: var(--input-text);
+                            font-size: 18px;
+                        ">🐝 ${manageCategoriesText}</h3>
+                        <button class="hive-prompt-favorite-category-manage-close" style="
+                            background: none;
+                            border: none;
+                            color: var(--input-text);
+                            font-size: 24px;
+                            cursor: pointer;
+                            padding: 0;
+                            width: 30px;
+                            height: 30px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        ">×</button>
+                    </div>
+                    <div class="hive-prompt-favorite-category-list" style="margin-bottom: 20px;">
+                        ${categories.length > 0 ? categories.map(cat => `
+                            <div class="hive-prompt-favorite-category-manage-item" data-category-id="${cat.id}" style="
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                padding: 12px;
+                                background-color: var(--comfy-input-bg);
+                                border: 1px solid var(--border-color);
+                                border-radius: 4px;
+                                margin-bottom: 8px;
+                            ">
+                                <span style="
+                                    color: var(--input-text);
+                                    font-size: 14px;
+                                ">${cat.name}</span>
+                                <div style="display: flex; gap: 8px;">
+                                    <button class="hive-prompt-favorite-category-manage-edit" data-category-id="${cat.id}" style="
+                                        padding: 4px 8px;
+                                        border: none;
+                                        background-color: var(--comfy-menu-bg);
+                                        color: var(--input-text);
+                                        cursor: pointer;
+                                        font-size: 12px;
+                                        border-radius: 4px;
+                                    ">${editText}</button>
+                                    <button class="hive-prompt-favorite-category-manage-delete" data-category-id="${cat.id}" style="
+                                        padding: 4px 8px;
+                                        border: none;
+                                        background-color: var(--comfy-menu-bg);
+                                        color: var(--input-text);
+                                        cursor: pointer;
+                                        font-size: 12px;
+                                        border-radius: 4px;
+                                    ">${deleteText}</button>
+                                </div>
+                            </div>
+                        `).join('') : `<div style="
+                            text-align: center;
+                            padding: 20px;
+                            color: var(--descrip-text);
+                        ">${noCategoriesText}</div>`}
+                    </div>
+                    <div style="
+                        display: flex;
+                        justify-content: flex-end;
+                        gap: 12px;
+                    ">
+                        <button class="hive-prompt-favorite-category-manage-add" style="
+                            padding: 8px 16px;
+                            border-radius: 4px;
+                            border: none;
+                            background-color: #ffe066;
+                            color: #000;
+                            cursor: pointer;
+                            font-weight: 500;
+                            font-size: 14px;
+                        ">${addCategoryText}</button>
+                        <button class="hive-prompt-favorite-category-manage-close-btn" style="
+                            padding: 8px 16px;
+                            border-radius: 4px;
+                            border: none;
+                            background-color: var(--comfy-input-bg);
+                            color: var(--input-text);
+                            cursor: pointer;
+                            font-weight: 500;
+                            font-size: 14px;
+                        ">${closeText}</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(manageModal);
+
+        const closeBtn = manageModal.querySelector('.hive-prompt-favorite-category-manage-close');
+        const closeBtn2 = manageModal.querySelector('.hive-prompt-favorite-category-manage-close-btn');
+        const addBtn = manageModal.querySelector('.hive-prompt-favorite-category-manage-add');
+
+        const cleanup = () => {
+            manageModal.remove();
+        };
+
+        closeBtn.onclick = cleanup;
+        closeBtn2.onclick = cleanup;
+
+        // 添加分类
+        addBtn.onclick = () => {
+            cleanup();
+            showCategoryEditModal();
+        };
+
+        // 编辑分类
+        manageModal.querySelectorAll('.hive-prompt-favorite-category-manage-edit').forEach(btn => {
+            btn.onclick = () => {
+                const categoryId = btn.dataset.categoryId;
+                const category = categories.find(c => c.id === categoryId);
+                if (category) {
+                    cleanup();
+                    showCategoryEditModal(category);
+                }
+            };
+        });
+
+        // 删除分类
+        manageModal.querySelectorAll('.hive-prompt-favorite-category-manage-delete').forEach(btn => {
+            btn.onclick = async () => {
+                const categoryId = btn.dataset.categoryId;
+                const category = categories.find(c => c.id === categoryId);
+                if (category) {
+                    const confirmMsg = confirmDeleteCategoryText.replace('{name}', category.name);
+                    const confirmed = await showCustomConfirm(confirmMsg);
+                    if (confirmed) {
+                        // 将该分类下的收藏移至无分类
+                        favorites.forEach(fav => {
+                            if (fav.categoryId === categoryId) {
+                                fav.categoryId = null;
+                            }
+                        });
+                        saveFavorites(favorites);
+
+                        // 删除分类
+                        categories = categories.filter(c => c.id !== categoryId);
+                        saveCategories(categories);
+                        categories = loadCategories(); // 重新加载分类
+                        renderCategoryFilters(); // 重新渲染分类筛选器
+                        renderFavorites(); // 重新渲染提示词列表
+
+                        cleanup();
+                        if (typeof window.showToast === 'function') {
+                            window.showToast(categoryDeletedText, 'success');
+                        }
+                    }
+                }
+            };
+        });
+
+        // Esc键关闭
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                cleanup();
+                document.removeEventListener('keydown', handleKeyDown);
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+    };
+
+    // 显示分类编辑弹窗
+    const showCategoryEditModal = (category = null) => {
+        const isEdit = category !== null;
+        const editModal = document.createElement('div');
+        editModal.id = 'hive-prompt-favorite-category-edit-modal';
+        editModal.innerHTML = `
+            <div class="hive-confirm-overlay" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10002;
+            ">
+                <div class="hive-confirm-content" style="
+                    background-color: var(--comfy-menu-bg);
+                    border-radius: 8px;
+                    padding: 24px;
+                    max-width: 400px;
+                    width: 90%;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                ">
+                    <div style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 20px;
+                        padding-bottom: 12px;
+                        border-bottom: 1px solid var(--border-color);
+                    ">
+                        <h3 style="
+                            margin: 0;
+                            color: var(--input-text);
+                            font-size: 18px;
+                        ">🐝 ${isEdit ? editCategoryText : addCategoryText}</h3>
+                        <button class="hive-prompt-favorite-category-edit-close" style="
+                            background: none;
+                            border: none;
+                            color: var(--input-text);
+                            font-size: 24px;
+                            cursor: pointer;
+                            padding: 0;
+                            width: 30px;
+                            height: 30px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        ">×</button>
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="
+                            display: block;
+                            color: var(--input-text);
+                            font-size: 14px;
+                            font-weight: 500;
+                            margin-bottom: 8px;
+                        ">${categoryNameText}:</label>
+                        <input type="text" class="hive-prompt-favorite-category-edit-name" placeholder="${enterCategoryNameText}" value="${category ? category.name : ''}" style="
+                            width: 100%;
+                            padding: 8px 12px;
+                            background-color: var(--comfy-input-bg);
+                            border: 1px solid var(--border-color);
+                            border-radius: 4px;
+                            color: var(--input-text);
+                            font-size: 14px;
+                        ">
+                    </div>
+                    <div style="
+                        display: flex;
+                        justify-content: flex-end;
+                        gap: 12px;
+                    ">
+                        <button class="hive-prompt-favorite-category-edit-cancel" style="
+                            padding: 8px 16px;
+                            border-radius: 4px;
+                            border: none;
+                            background-color: var(--comfy-input-bg);
+                            color: var(--input-text);
+                            cursor: pointer;
+                            font-weight: 500;
+                            font-size: 14px;
+                        ">${cancelText}</button>
+                        <button class="hive-prompt-favorite-category-edit-save" style="
+                            padding: 8px 16px;
+                            border-radius: 4px;
+                            border: none;
+                            background-color: #ffe066;
+                            color: #000;
+                            cursor: pointer;
+                            font-weight: 500;
+                            font-size: 14px;
+                        ">${saveText}</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(editModal);
+
+        const closeBtn = editModal.querySelector('.hive-prompt-favorite-category-edit-close');
+        const cancelBtn = editModal.querySelector('.hive-prompt-favorite-category-edit-cancel');
+        const saveBtn = editModal.querySelector('.hive-prompt-favorite-category-edit-save');
+        const nameInput = editModal.querySelector('.hive-prompt-favorite-category-edit-name');
+
+        const cleanup = () => {
+            editModal.remove();
+        };
+
+        closeBtn.onclick = cleanup;
+        cancelBtn.onclick = cleanup;
+
+        saveBtn.onclick = async () => {
+            const name = nameInput.value.trim();
+            if (!name) {
+                if (typeof window.showToast === 'function') {
+                    window.showToast(categoryNameRequiredText, 'warning');
+                }
+                return;
+            }
+
+            if (isEdit) {
+                // 更新分类
+                const index = categories.findIndex(c => c.id === category.id);
+                if (index !== -1) {
+                    categories[index] = {
+                        ...categories[index],
+                        name
+                    };
+                    saveCategories(categories);
+                    categories = loadCategories(); // 重新加载分类
+                    renderCategoryFilters(); // 重新渲染分类筛选器
+                    renderFavorites(); // 重新渲染提示词列表
+                    if (typeof window.showToast === 'function') {
+                        window.showToast(categoryUpdatedText, 'success');
+                    }
+                }
+            } else {
+                // 新增分类
+                const newCategory = {
+                    id: generateId(),
+                    name,
+                    createdAt: Date.now()
+                };
+                categories.push(newCategory);
+                saveCategories(categories);
+                categories = loadCategories(); // 重新加载分类
+                renderCategoryFilters(); // 重新渲染分类筛选器
+                renderFavorites(); // 重新渲染提示词列表
+                if (typeof window.showToast === 'function') {
+                    window.showToast(categorySavedText, 'success');
+                }
+            }
+
+            cleanup();
+        };
+
+        // Esc键关闭
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                cleanup();
+                document.removeEventListener('keydown', handleKeyDown);
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+
+        nameInput.focus();
+    };
+
+    // 创建主弹窗
+    const modal = document.createElement('div');
+    modal.id = 'hive-prompt-favorite-modal';
+    modal.innerHTML = `
+        <div class="hive-confirm-overlay" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        ">
+            <div class="hive-confirm-content" style="
+                background-color: var(--comfy-menu-bg);
+                border-radius: 8px;
+                padding: 24px;
+                max-width: 800px;
+                width: 90%;
+                max-height: 90vh;
+                overflow-y: auto;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            ">
+                <div style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 20px;
+                    padding-bottom: 12px;
+                    border-bottom: 1px solid var(--border-color);
+                ">
+                    <h3 style="
+                        margin: 0;
+                        color: var(--input-text);
+                        font-size: 18px;
+                    ">🐝 ${titleText}</h3>
+                    <div style="
+                        display: flex;
+                        gap: 8px;
+                        align-items: center;
+                    ">
+                        <button class="hive-prompt-favorite-manage-categories" style="
+                            padding: 6px 12px;
+                            border-radius: 4px;
+                            border: none;
+                            background-color: var(--comfy-input-bg);
+                            color: var(--input-text);
+                            cursor: pointer;
+                            font-weight: 500;
+                            font-size: 14px;
+                        ">${manageCategoriesText}</button>
+                        <button class="hive-prompt-favorite-export" style="
+                            padding: 6px 12px;
+                            border-radius: 4px;
+                            border: none;
+                            background-color: var(--comfy-input-bg);
+                            color: var(--input-text);
+                            cursor: pointer;
+                            font-weight: 500;
+                            font-size: 14px;
+                        ">${exportDataText}</button>
+                        <button class="hive-prompt-favorite-import" style="
+                            padding: 6px 12px;
+                            border-radius: 4px;
+                            border: none;
+                            background-color: var(--comfy-input-bg);
+                            color: var(--input-text);
+                            cursor: pointer;
+                            font-weight: 500;
+                            font-size: 14px;
+                        ">${importDataText}</button>
+                        <button class="hive-prompt-favorite-close" style="
+                            background: none;
+                            border: none;
+                            color: var(--input-text);
+                            font-size: 24px;
+                            cursor: pointer;
+                            padding: 0;
+                            width: 30px;
+                            height: 30px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            margin-left: 8px;
+                        ">×</button>
+                    </div>
+                </div>
+                <div style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 12px;
+                    margin-bottom: 16px;
+                    flex-wrap: wrap;
+                ">
+                    <div class="hive-prompt-favorite-category-filters" style="
+                        display: flex;
+                        gap: 8px;
+                        flex-wrap: wrap;
+                        flex: 1;
+                    "></div>
+                    <button class="hive-prompt-favorite-add" style="
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        border: none;
+                        background-color: #ffe066;
+                        color: #000;
+                        cursor: pointer;
+                        font-weight: 500;
+                        font-size: 14px;
+                        flex-shrink: 0;
+                    ">${addFavoriteText}</button>
+                </div>
+                <div class="hive-prompt-favorite-list" style="
+                    min-height: 200px;
+                    max-height: 500px;
+                    overflow-y: auto;
+                "></div>
+                <div class="hive-prompt-favorite-pagination"></div>
+                <div style="
+                    display: flex;
+                    justify-content: flex-end;
+                    gap: 12px;
+                    margin-top: 20px;
+                ">
+                    <button class="hive-prompt-favorite-close-btn" style="
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        border: none;
+                        background-color: var(--comfy-input-bg);
+                        color: var(--input-text);
+                        cursor: pointer;
+                        font-weight: 500;
+                        font-size: 14px;
+                    ">${closeText}</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // 阻止事件冒泡到Canvas
+    const setupModalCopySupport = (modalEl) => {
+        if (!modalEl) return;
+        
+        modalEl.style.webkitUserSelect = 'text';
+        modalEl.style.mozUserSelect = 'text';
+        modalEl.style.msUserSelect = 'text';
+        modalEl.style.userSelect = 'text';
+        
+        modalEl.addEventListener('pointerdown', function(e) {
+            e.stopPropagation();
+        }, true);
+        modalEl.addEventListener('mousedown', function(e) {
+            e.stopPropagation();
+        }, true);
+        modalEl.addEventListener('wheel', function(e) {
+            e.stopPropagation();
+        }, true);
+        modalEl.addEventListener('contextmenu', function(e) {
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+        }, true);
+    };
+    
+    setupModalCopySupport(modal);
+
+    // 获取元素
+    const closeBtn = modal.querySelector('.hive-prompt-favorite-close');
+    const closeBtn2 = modal.querySelector('.hive-prompt-favorite-close-btn');
+    const addBtn = modal.querySelector('.hive-prompt-favorite-add');
+    const manageCategoriesBtn = modal.querySelector('.hive-prompt-favorite-manage-categories');
+    const exportBtn = modal.querySelector('.hive-prompt-favorite-export');
+    const importBtn = modal.querySelector('.hive-prompt-favorite-import');
+
+    const cleanup = () => {
+        modal.remove();
+    };
+
+    closeBtn.onclick = cleanup;
+    closeBtn2.onclick = cleanup;
+
+    // 新增收藏
+    addBtn.onclick = () => {
+        showFavoriteEditModal();
+    };
+
+    // 管理分类
+    manageCategoriesBtn.onclick = () => {
+        showCategoryManageModal();
+    };
+
+    // 导出数据
+    exportBtn.onclick = () => {
+        try {
+            const exportData = {
+                favorites: favorites,
+                categories: categories,
+                version: '1.0',
+                exportTime: Date.now()
+            };
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `hive-prompt-favorites-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            if (typeof window.showToast === 'function') {
+                window.showToast(exportSuccessText, 'success');
+            }
+        } catch (e) {
+            console.error('🐝 Hive: Failed to export data:', e);
+            if (typeof window.showToast === 'function') {
+                window.showToast(exportFailedText + ': ' + e.message, 'error');
+            }
+        }
+    };
+
+    // 导入数据
+    importBtn.onclick = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                const importData = JSON.parse(text);
+                
+                if (!importData.favorites || !Array.isArray(importData.favorites) || 
+                    !importData.categories || !Array.isArray(importData.categories)) {
+                    throw new Error(invalidImportDataText);
+                }
+
+                // 先检查重复数据
+                let duplicateFavoritesCount = 0;
+                let duplicateCategoriesCount = 0;
+                
+                importData.favorites.forEach(importFav => {
+                    // 检查内容是否已存在（忽略ID和categoryId）
+                    const exists = favorites.some(f => f.content === importFav.content);
+                    if (exists) {
+                        duplicateFavoritesCount++;
+                    }
+                });
+                
+                importData.categories.forEach(importCat => {
+                    // 检查分类名称是否已存在
+                    const exists = categories.some(c => c.name === importCat.name);
+                    if (exists) {
+                        duplicateCategoriesCount++;
+                    }
+                });
+                
+                const newFavoritesCount = importData.favorites.length - duplicateFavoritesCount;
+                const newCategoriesCount = importData.categories.length - duplicateCategoriesCount;
+                
+                let confirmMsg = '';
+                if (duplicateFavoritesCount > 0 || duplicateCategoriesCount > 0) {
+                    confirmMsg = importConfirmWithDuplicatesText
+                        .replace('{newFavorites}', newFavoritesCount)
+                        .replace('{duplicateFavorites}', duplicateFavoritesCount)
+                        .replace('{newCategories}', newCategoriesCount)
+                        .replace('{duplicateCategories}', duplicateCategoriesCount);
+                } else {
+                    confirmMsg = importConfirmText
+                        .replace('{newFavorites}', importData.favorites.length)
+                        .replace('{newCategories}', importData.categories.length);
+                }
+                
+                const confirmed = await showCustomConfirm(confirmMsg);
+                if (confirmed) {
+                    // 合并分类（检查名称和ID重复）
+                    importData.categories.forEach(importCat => {
+                        // 检查分类名称是否已存在
+                        const existingByName = categories.find(c => c.name === importCat.name);
+                        if (existingByName) {
+                            // 名称已存在，跳过（不导入）
+                            return;
+                        }
+                        
+                        // 检查ID是否已存在
+                        const existingById = categories.find(c => c.id === importCat.id);
+                        if (existingById) {
+                            // ID已存在，跳过（不导入）
+                            return;
+                        }
+                        
+                        // 名称和ID都不存在，导入新分类
+                        categories.push(importCat);
+                    });
+
+                    // 合并收藏（检查内容重复，智能关联分类）
+                    importData.favorites.forEach(importFav => {
+                        // 检查内容是否已存在
+                        const existingFavorite = favorites.find(f => f.content === importFav.content);
+                        if (existingFavorite) {
+                            // 内容已存在，跳过（不导入）
+                            return;
+                        }
+                        
+                        // 内容不存在，需要确定正确的categoryId
+                        let finalCategoryId = null;
+                        
+                        if (importFav.categoryId) {
+                            // 查找导入数据中对应的分类
+                            const importCategory = importData.categories.find(c => c.id === importFav.categoryId);
+                            
+                            if (importCategory) {
+                                // 在现有分类中查找相同名称的分类
+                                const existingCategoryByName = categories.find(c => c.name === importCategory.name);
+                                if (existingCategoryByName) {
+                                    // 如果分类名称已存在，使用现有分类的ID
+                                    finalCategoryId = existingCategoryByName.id;
+                                } else {
+                                    // 检查分类ID是否已存在
+                                    const existingCategoryById = categories.find(c => c.id === importCategory.id);
+                                    if (existingCategoryById) {
+                                        // 如果分类ID已存在，使用该ID
+                                        finalCategoryId = existingCategoryById.id;
+                                    } else {
+                                        // 分类已在上面的循环中导入，使用原ID
+                                        finalCategoryId = importCategory.id;
+                                    }
+                                }
+                            } else {
+                                // 导入数据中没有对应的分类，检查现有分类中是否有该ID
+                                const existingCategoryById = categories.find(c => c.id === importFav.categoryId);
+                                if (existingCategoryById) {
+                                    // 如果分类ID已存在，使用该ID
+                                    finalCategoryId = existingCategoryById.id;
+                                }
+                                // 如果都不存在，finalCategoryId保持为null（无分类）
+                            }
+                        }
+                        
+                        // 添加新收藏
+                        const newFavorite = {
+                            id: generateId(), // 总是生成新ID
+                            content: importFav.content,
+                            categoryId: finalCategoryId,
+                            createdAt: importFav.createdAt || Date.now()
+                        };
+                        favorites.push(newFavorite);
+                    });
+
+                    saveFavorites(favorites);
+                    saveCategories(categories);
+                    favorites = loadFavorites(); // 重新加载收藏
+                    categories = loadCategories(); // 重新加载分类
+                    currentPage = 1;
+                    renderCategoryFilters(); // 重新渲染分类筛选器
+                    renderFavorites(); // 重新渲染提示词列表
+                    if (typeof window.showToast === 'function') {
+                        let successMsg = importSuccessText;
+                        if (duplicateFavoritesCount > 0 || duplicateCategoriesCount > 0) {
+                            successMsg = importSuccessWithDuplicatesText
+                                .replace('{newFavorites}', newFavoritesCount)
+                                .replace('{duplicateFavorites}', duplicateFavoritesCount)
+                                .replace('{newCategories}', newCategoriesCount)
+                                .replace('{duplicateCategories}', duplicateCategoriesCount);
+                        }
+                        window.showToast(successMsg, 'success');
+                    }
+                }
+            } catch (e) {
+                console.error('🐝 Hive: Failed to import data:', e);
+                if (typeof window.showToast === 'function') {
+                    window.showToast(importFailedText + ': ' + (e.message || invalidImportDataText), 'error');
+                }
+            }
+        };
+        input.click();
+    };
+
+    // 事件委托处理列表中的操作
+    modal.addEventListener('click', (e) => {
+        const target = e.target;
+        
+        // 复制提示词
+        if (target.classList.contains('hive-prompt-favorite-copy')) {
+            const favoriteId = target.dataset.favoriteId;
+            const favorite = favorites.find(f => f.id === favoriteId);
+            if (favorite) {
+                navigator.clipboard.writeText(favorite.content).then(() => {
+                    if (typeof window.showToast === 'function') {
+                        window.showToast(promptCopiedText, 'success');
+                    }
+                }).catch(() => {
+                    console.error('🐝 Hive: Failed to copy prompt');
+                });
+            }
+        }
+        
+        // 编辑收藏
+        if (target.classList.contains('hive-prompt-favorite-edit')) {
+            const favoriteId = target.dataset.favoriteId;
+            const favorite = favorites.find(f => f.id === favoriteId);
+            if (favorite) {
+                showFavoriteEditModal(favorite);
+            }
+        }
+        
+        // 删除收藏
+        if (target.classList.contains('hive-prompt-favorite-delete')) {
+            const favoriteId = target.dataset.favoriteId;
+            const favorite = favorites.find(f => f.id === favoriteId);
+            if (favorite) {
+                showCustomConfirm(confirmDeleteFavoriteText).then(confirmed => {
+                    if (confirmed) {
+                        favorites = favorites.filter(f => f.id !== favoriteId);
+                        saveFavorites(favorites);
+                        renderFavorites();
+                        if (typeof window.showToast === 'function') {
+                            window.showToast(favoriteDeletedText, 'success');
+                        }
+                    }
+                });
+            }
+        }
+        
+        // 上一页
+        if (target.classList.contains('hive-prompt-favorite-prev-page')) {
+            if (currentPage > 1) {
+                currentPage--;
+                renderFavorites();
+            }
+        }
+        
+        // 下一页
+        if (target.classList.contains('hive-prompt-favorite-next-page')) {
+            const filteredFavorites = getFilteredAndSortedFavorites();
+            const totalPages = Math.max(1, Math.ceil(filteredFavorites.length / pageSize));
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderFavorites();
+            }
+        }
+        
+        // 分类筛选
+        if (target.classList.contains('hive-prompt-favorite-category-filter')) {
+            selectedCategoryId = target.dataset.categoryId;
+            currentPage = 1; // 重置到第一页
+            renderCategoryFilters(); // 重新渲染分类筛选器（更新选中状态）
+            renderFavorites(); // 重新渲染提示词列表
+        }
+    });
+
+    // Esc键关闭
+    const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+            cleanup();
+            document.removeEventListener('keydown', handleKeyDown);
+        }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+
+    // 初始渲染
+    renderCategoryFilters(); // 渲染分类筛选器
+    renderFavorites(); // 渲染提示词列表
+}
+
+// 导出函数供全局使用
+if (typeof window !== 'undefined') {
+    window.showPromptFavoriteModal = showPromptFavoriteModal;
 }
 
 
