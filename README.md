@@ -3,391 +3,390 @@
 
 
 [![GitHub](https://img.shields.io/badge/GitHub-luguoli-orange)](https://github.com/luguoli)
-[![ComfyUI](https://img.shields.io/badge/ComfyUI-自定义节点-blue)](https://github.com/comfyanonymous/ComfyUI)
+[![ComfyUI](https://img.shields.io/badge/ComfyUI-Custom%20Node-blue)](https://github.com/comfyanonymous/ComfyUI)
 
-[English](README-en.md) | **简体中文**
+**English** | [简体中文](README-zh.md)
 
 
-**ComfyUI 社区交流与资源共享平台**
+**ComfyUI Community Communication and Resource Sharing Platform**
 
-ComfyUI-Hive 是一个专为 ComfyUI 用户打造的社区插件，让您能够：
-- 💬 **与全球用户实时交流**：在多个频道中实时与其他 ComfyUI 用户聊天、分享作品
-- 🎨 **发现创作灵感**：浏览、搜索、收藏来自社区的优质作品、工作流、节点、模型、教程
-- 📥 **轻松获取资源**：节点GitHub地址打不开？huggingface打不开？不会安装节点？不会下载模型？全都不用担心了！自带镜像地址，自带节点安装器、模型下载器，一键下载模型、安装节点，无需手动操作
-- 🔄 **分享工作流**：喜欢的图片不知道怎么生成的？一键加载到画布
-- 🖱️ **强大的右键菜单**：右键即可使用提示词扩写、随机提示词、摄影提示词生成器、提示词收藏、AI对话、翻译、提示词反推、节点修复等功能
+ComfyUI-Hive is a community plugin designed for ComfyUI users, allowing you to:
+- 💬 **Real-time communication with global users**: Chat and share works with other ComfyUI users in real-time across multiple channels
+- 🎨 **Discover creative inspiration**: Browse, search, and favorite quality works, workflows, nodes, models, and tutorials from the community
+- 📥 **Easy resource access**: Can't access node GitHub links? Can't access HuggingFace? Don't know how to install nodes? Don't know how to download models? Don't worry! Built-in mirror addresses, built-in node installer and model downloader, one-click download models and install nodes, no manual operation required
+- 🔄 **Share workflows**: Don't know how to generate that image you like? Load it to the canvas with one click
+- 🖱️ **Powerful context menu**: Right-click to use expand prompt, random prompt, photo prompt generator, prompt favorite, AI chat, translate, reverse prompt, and fix node features
 
-#### 如果这个项目对您有帮助，请点个 ⭐Star 吧，让我知道世界上还有人类在使用它！
+#### If this project helps you, please give it a ⭐Star — it lets me know there are humans out there using it!
 
-## 📋 目录
+## 📋 Table of Contents
 
-- [我能做什么？](#我能做什么)
-- [快速开始](#快速开始)
-- [功能详解](#功能详解)
-- [常见问题](#常见问题)
-- [联系方式](#联系方式)
+- [What Can I Do?](#what-can-i-do)
+- [Quick Start](#quick-start)
+- [Feature Details](#feature-details)
+- [FAQ](#faq)
+- [Contact](#contact)
 
-## 我能做什么？
+## What Can I Do?
 
-### 💬 加入社区聊天
+### 💬 Join Community Chat
 
-打开 ComfyUI-Hive Hub / Club，您会看到多个聊天频道。每个频道都有不同的主题，您可以选择感兴趣的频道加入：
+Open ComfyUI-Hive Hub / Club, and you'll see multiple chat channels. Each channel has a different theme, and you can choose channels that interest you:
 
-- **实时聊天**：消息即时送达，就像使用即时通讯软件一样流畅
-- **查看在线人数**：每个频道都会显示当前有多少人在线
-- **分享作品**：直接上传图片或工作流文件，与大家分享您的创作，喜欢的图片和工作流，一键加载到画布，再也不用担心不会搭建了
-- **获取帮助**：遇到问题？在频道中提问，热心的社区成员会帮助您
+- **Real-time chat**: Messages are delivered instantly, as smooth as using instant messaging software
+- **View online users**: Each channel displays how many people are currently online
+- **Share works**: Directly upload images or workflow files to share your creations with everyone. Liked images and workflows can be loaded to the canvas with one click, so you'll never worry about not knowing how to set them up
+- **Get help**: Encountered a problem? Ask in the channel, and helpful community members will assist you
 
-### 🎨 浏览灵感广场
+### 🎨 Browse Inspiration Square
 
-灵感广场是一个内容丰富的资源库，您可以：
+Inspiration Square is a rich content resource library where you can:
 
-- **发现优质作品**：浏览其他用户分享的图片、工作流、模型等
-- **快速搜索**：输入关键词，快速找到您需要的内容
-- **精准筛选**：按分类（图片/视频/工作流/模型/节点/教程）、标签筛选内容
-- **多种排序**：按最新发布、最多点赞、最多收藏排序，发现热门内容
-- **收藏喜欢的内容**：遇到喜欢的作品？点击收藏，方便以后查看
-- **点赞支持**：为优质内容点赞，让更多人看到
+- **Discover quality works**: Browse images, workflows, models, etc. shared by other users
+- **Quick search**: Enter keywords to quickly find what you need
+- **Precise filtering**: Filter content by category (Image/Video/Workflow/Model/Node/Tutorial) and tags
+- **Multiple sorting options**: Sort by latest, most likes, most favorites to discover popular content
+- **Favorite liked content**: Found a work you like? Click favorite to view it later
+- **Like to support**: Like quality content to help more people see it
 
-### 📤 分享您的工作流
+### 📤 Share Your Workflow
 
-当您想分享一个工作流时，有两种方式：
+When you want to share a workflow, there are two ways:
 
-1. **上传工作流 JSON 文件**：直接上传 `.json` 文件
-2. **分享包含工作流的图片**：如果图片是用 ComfyUI 保存的，系统会自动检测并询问是否携带工作流
+1. **Upload workflow JSON file**: Directly upload a `.json` file
+2. **Share image with workflow**: If the image was saved with ComfyUI, the system will automatically detect and ask if you want to include the workflow
 
-其他小伙伴只需点击"加载工作流"按钮，就能一键将工作流加载到自己的 ComfyUI 画布上，极其方便！
+Other users just need to click the "Load Workflow" button to load the workflow to their ComfyUI canvas with one click - extremely convenient!
 
-![alt text](images/1-1.png)
+![alt text](images/1-1-en.png)
 
-### 📥 轻松下载模型
+### 📥 Easy Model Download
 
-不再需要手动下载模型文件！使用模型下载器节点：
+No more manual model file downloads! Use the model downloader node:
 
-1. 复制模型下载链接
-2. 选择保存目录（checkpoints、loras、vae 等）
-3. 点击下载，等待完成
+1. Copy the model download link
+2. Select the save directory (checkpoints, loras, vae, etc.)
+3. Click download and wait for completion
 
-系统会自动处理一切，包括：
-- 多线程加速下载
-- 显示下载进度
-- 自动保存到正确位置
-- 检测文件是否已存在，避免重复下载
+The system will automatically handle everything, including:
+- Multi-threaded accelerated download
+- Display download progress
+- Automatic save to correct location
+- Detect if file already exists to avoid duplicate downloads
 
-<img src="images/16.png" width="500" style="margin-left: 30px;" />
+<img src="images/16-en.png" width="500" style="margin-left: 30px;" />
 <img src="images/17.png" width="500" style="margin-left: 30px;" />
 
-### 📦 一键安装节点
 
-看到别人推荐的好用节点？使用节点安装器，只需：
+### 📦 One-Click Node Installation
 
-1. 复制节点的 GitHub/GitLab/Gitee 链接
-2. 点击安装按钮
-3. 等待安装完成
-4. 重启 ComfyUI 即可使用
+Found a useful node recommended by others? Use the node installer, just:
 
-支持 Git 仓库和 ZIP 文件两种方式，系统会自动识别并处理。
+1. Copy the node's GitHub/GitLab/Gitee link
+2. Click the install button
+3. Wait for installation to complete
+4. Restart ComfyUI to use it
 
-<img src="images/18.png" width="500" style="margin-left: 30px;" />
+Supports both Git repositories and ZIP files. The system will automatically identify and handle them.
+
+<img src="images/18-en.png" width="500" style="margin-left: 30px;" />
 <img src="images/19.png" width="500" style="margin-left: 30px;" />
 
-### 🖱️ 右键菜单功能
+### 🖱️ Context Menu Features
 
-Hive 提供了丰富的右键菜单功能，让您的工作流更加高效：
+Hive provides rich context menu features to make your workflow more efficient:
 
-<img src="images/20.png" width="150" style="margin-left: 30px;" />
+<img src="images/20-en.png" width="150" style="margin-left: 30px;" />
 
-1. 提示词扩写
+1. Expand Prompt
 
-<img src="images/10.png" width="500" style="margin-left: 30px;" />
+<img src="images/10-en.png" width="500" style="margin-left: 30px;" />
 
-2. 随机提示词
+2. Random Prompt
 
-<img src="images/11.png" width="500" style="margin-left: 30px;" />
+<img src="images/11-en.png" width="500" style="margin-left: 30px;" />
 
-3. 摄影提示词生成器
+3. Photo Prompt Generator
 
-<img src="images/21.png" width="800" style="margin-left: 30px;" />
+<img src="images/21-en.png" width="800" style="margin-left: 30px;" />
 
-4. 提示词收藏，收藏和管理常用的提示词，支持分类管理、编辑删除、导出导入、分类筛选等功能，建立个人提示词库。
+4. Prompt Favorite, Collect and manage commonly used prompts with category management, edit/delete, export/import, category filtering, and more to build your personal prompt library.
 
-<img src="images/22.png" width="700" style="margin-left: 30px;" />
+<img src="images/22-en.png" width="700" style="margin-left: 30px;" />
 
+5. AI Chat
 
-5. 与AI对话
+<img src="images/12-en.png" width="500" style="margin-left: 30px;" />
 
-<img src="images/12.png" width="500" style="margin-left: 30px;" />
+6. Translate
 
-6. 翻译
+<img src="images/13-en.png" width="500" style="margin-left: 30px;" />
 
-<img src="images/13.png" width="500" style="margin-left: 30px;" />
+7. Fix Node
 
-7. 修复节点
+<img src="images/14-en.png" width="500" style="margin-left: 30px;" />
 
-<img src="images/14.png" width="500" style="margin-left: 30px;" />
+8. Reverse Prompt
 
-8. 提示词反推
+<img src="images/15-en.png" width="500" style="margin-left: 30px;" />
 
-<img src="images/15.png" width="500" style="margin-left: 30px;" />
+All AI features require configuring the Large Language Model API first (configure in settings).
 
-所有 AI 功能需要先配置大语言模型 API（在设置中配置）。
+## Quick Start
 
+### Step 1: Install the Plugin
 
-## 快速开始
+**Method 1: Through ComfyUI Manager (Recommended)**
+1. Open ComfyUI Manager in the ComfyUI interface
+2. Search for "ComfyUI-Hive"
+3. Click Install
 
-### 第一步：安装插件
-
-**方法1：通过ComfyUI管理器（推荐）**
-1. 在ComfyUI界面中打开ComfyUI管理器
-2. 搜索 "ComfyUI-Hive"
-3. 点击安装
-
-**方法2：使用 Git**
+**Method 2: Using Git**
 ```bash
 cd ComfyUI/custom_nodes
 git clone https://github.com/luguoli/ComfyUI-Hive.git
-或 Gitee 仓库（中国大陆）：
+Or Gitee repository (Mainland China):
 git clone https://gitee.com/luguoli/ComfyUI-Hive.git
 ```
 
-**方法3：手动安装**
-1. 下载项目 ZIP 文件并解压
-2. 将文件夹放到 `ComfyUI/custom_nodes/` 目录下
-3. 注意将文件夹名改为 `ComfyUI-Hive`
+**Method 3: Manual Installation**
+1. Download the project ZIP file and extract it
+2. Place the folder in the `ComfyUI/custom_nodes/` directory
+3. Note that the folder name should be changed to `ComfyUI-Hive`
 
-### 第二步：启动 ComfyUI
+### Step 2: Start ComfyUI
 
-重启 ComfyUI，您会在界面右侧看到一个 **🐝 Hive** 按钮。
+Restart ComfyUI, and you'll see a **🐝 Hive** button on the right side of the interface.
 
-### 第三步：开始使用
-
-点击 **🐝 Hive** 按钮，打开 Hive Hub 侧边栏，就可以开始使用所有功能了！
-
-## 功能详解
-
-### 💬 聊天功能使用指南
-
-**进入频道**
-- 打开 Hive Hub 后，您会看到"广场"视图，显示所有可用的聊天频道
-- 每个频道显示当前在线人数
-- 点击任意频道即可进入聊天
-
-**发送消息**
-- 在聊天界面底部的输入框输入文字，点击"发送"按钮
-- 支持上传图片（PNG/JPG/WebP）和工作流 JSON 文件
-- 点击输入框上方的 📎 按钮选择文件
-
-**分享工作流**
-- 上传图片时，如果图片包含工作流数据，系统会询问是否携带工作流
-- 选择"是"后，接收方就能在图片上看到"加载工作流"按钮
-- 小伙伴点击按钮即可一键加载到自己的画布
-
-**查看历史消息**
-- 向上滚动聊天窗口，会自动加载更早的消息
-- 系统会自动补齐断线期间错过的消息
-
-### 🎨 灵感广场使用指南
-
-**切换视图**
-- 点击 Hive Hub 顶部的"灵感"标签，切换到灵感广场
-
-**浏览内容**
-- 顶部有分类按钮（图片/视频/工作流/模型/节点/教程），点击切换分类
-- 每个分类下可以按标签进一步筛选
-- 支持按"最新"、"最多点赞"、"最多收藏"排序
-
-**搜索功能**
-- 在搜索框输入关键词，点击搜索按钮或按回车
-- 可以搜索标题、描述等内容
-
-**互动功能**
-- **点赞**：点击 👍 按钮为内容点赞
-- **收藏**：点击 ⭐ 按钮收藏内容，在"收藏"筛选中查看
-- **查看详情**：点击内容卡片查看详细信息
-
-### 📥 模型下载器使用指南
-
-1. 在节点列表中找到 **Hive** → **模型下载器**
-2. 将模型下载链接粘贴到"模型地址"输入框
-3. 从下拉菜单选择保存目录（checkpoints、loras、vae 等）
-4. 点击"开始下载"按钮
-5. 等待下载完成（查看进度条）
-6. **重要**：下载完成后重启 ComfyUI 才能使用新模型
-
-**小贴士**：
-- 如果文件已存在，系统会提示并跳过下载
-- 支持多线程下载，大文件下载更快
-- 下载过程中可以查看实时进度
+### Step 3: Start Using
+
+Click the **🐝 Hive** button to open the Hive Hub sidebar and start using all features!
+
+## Feature Details
+
+### 💬 Chat Feature Guide
+
+**Enter Channel**
+- After opening Hive Hub, you'll see the "Square" view showing all available chat channels
+- Each channel displays the current number of online users
+- Click any channel to enter chat
+
+**Send Messages**
+- Enter text in the input box at the bottom of the chat interface and click the "Send" button
+- Supports uploading images (PNG/JPG/WebP) and workflow JSON files
+- Click the 📎 button above the input box to select files
+
+**Share Workflow**
+- When uploading images, if the image contains workflow data, the system will ask if you want to include the workflow
+- After selecting "Yes", recipients will see the "Load Workflow" button on the image
+- Users can click the button to load it to their canvas with one click
+
+**View History Messages**
+- Scroll up in the chat window to automatically load earlier messages
+- The system will automatically fill in messages missed during disconnection
+
+### 🎨 Inspiration Square Guide
+
+**Switch View**
+- Click the "Inspiration" tab at the top of Hive Hub to switch to Inspiration Square
+
+**Browse Content**
+- Top has category buttons (Image/Video/Workflow/Model/Node/Tutorial), click to switch categories
+- Each category can be further filtered by tags
+- Supports sorting by "Latest", "Most Likes", "Most Favorites"
+
+**Search Function**
+- Enter keywords in the search box and click search or press Enter
+- Can search titles, descriptions, etc.
+
+**Interaction Features**
+- **Like**: Click 👍 button to like content
+- **Favorite**: Click ⭐ button to favorite content, view in "Favorites" filter
+- **View Details**: Click content card to view detailed information
+
+### 📥 Model Downloader Guide
+
+1. Find **Hive** → **Model Downloader** in the node list
+2. Paste the model download link into the "Model URL" input box
+3. Select save directory from dropdown menu (checkpoints, loras, vae, etc.)
+4. Click "Start Download" button
+5. Wait for download to complete (check progress bar)
+6. **Important**: After download completes, restart ComfyUI to use the new model
+
+**Tips**:
+- If file already exists, the system will prompt and skip download
+- Supports multi-threaded download for faster large file downloads
+- Can view real-time progress during download
 
-### 📦 节点安装器使用指南
+### 📦 Node Installer Guide
 
-1. 在节点列表中找到 **Hive** → **节点安装器**
-2. 将节点链接粘贴到"节点安装地址"输入框
-   - 支持 GitHub、GitLab、Gitee 等平台
-   - 也支持 ZIP 文件链接
-3. 点击"开始安装"按钮
-4. 等待安装完成
-5. **重要**：安装完成后重启 ComfyUI 才能使用新节点
+1. Find **Hive** → **Node Installer** in the node list
+2. Paste the node link into the "Node Installation Address" input box
+   - Supports GitHub, GitLab, Gitee, and other platforms
+   - Also supports ZIP file links
+3. Click "Start Install" button
+4. Wait for installation to complete
+5. **Important**: After installation completes, restart ComfyUI to use the new node
 
-**小贴士**：
-- 如果节点已存在，系统会自动尝试更新
-- 安装 Git 仓库需要系统已安装 Git 工具
+**Tips**:
+- If node already exists, the system will automatically try to update
+- Installing Git repositories requires Git tool to be installed on the system
 
-### 🖱️ 右键菜单功能
+### 🖱️ Context Menu Features
 
-Hive 提供了丰富的右键菜单功能，让您的工作流更加高效：
+Hive provides rich context menu features to make your workflow more efficient:
 
-1. **🐝 Hive 提示词扩写**
-   - 输入提示词，AI 会自动帮您扩写，生成更详细、更丰富的提示词
-   - 支持中英文提示词扩写
-   - 扩写完成后可直接复制使用
+1. **🐝 Hive Expand Prompt**
+   - Enter a prompt, and AI will automatically expand it to generate more detailed and rich prompts
+   - Supports expanding prompts in both Chinese and English
+   - After expansion, you can directly copy and use the result
 
-2. **🐝 Hive 随机提示词**
-   - 一键生成随机提示词，激发创作灵感
-   - 生成的提示词包含中英文版本
-   - 适合需要快速获取提示词灵感的场景
+2. **🐝 Hive Random Prompt**
+   - Generate random prompts with one click to inspire creativity
+   - Generated prompts include both Chinese and English versions
+   - Perfect for scenarios where you need quick prompt inspiration
 
-3. **🐝 Hive 摄影提示词生成器**
-   - 专业的摄影风格提示词生成工具
-   - 支持丰富的摄影参数设置：地点、人物、年龄、性别、发型、妆容、服装、姿势、朝向、灯光、镜头、相机、风格、时间、天气等
-   - 支持摄影技术参数：ISO、光圈、快门、色温、白平衡、景深等
-   - 可保存和加载预设，方便重复使用
-   - 支持随机设定和推荐设定，快速生成提示词
-   - 生成的提示词可直接复制使用
+3. **🐝 Hive Photo Prompt Generator**
+   - Professional photography-style prompt generation tool
+   - Supports rich photography parameter settings: location, person, age, gender, hairstyle, makeup, clothing, pose, orientation, lighting, lens, camera, style, time, weather, etc.
+   - Supports photography technical parameters: ISO, aperture, shutter speed, color temperature, white balance, depth of field, etc.
+   - Can save and load presets for easy reuse
+   - Supports random settings and recommended settings for quick prompt generation
+   - Generated prompts can be directly copied and used
 
-4. **🐝 Hive 提示词收藏**
-   - 收藏和管理常用的提示词
-   - 支持分类管理，创建多个分类来组织收藏
-   - 支持编辑和删除收藏，随时更新内容
-   - 支持分类筛选，快速找到需要的提示词
-   - 支持导出和导入，方便备份和分享
-   - 一键复制提示词到剪贴板
+4. **🐝 Hive Prompt Favorite**
+   - Collect and manage commonly used prompts
+   - Supports category management, create multiple categories to organize favorites
+   - Supports editing and deleting favorites, update content anytime
+   - Supports category filtering to quickly find needed prompts
+   - Supports export and import for easy backup and sharing
+   - One-click copy prompt to clipboard
 
-5. **🐝 Hive 与AI对话**
-   - 与 AI 进行对话，获取创作建议和帮助
-   - 可以询问关于 ComfyUI 使用、工作流优化等问题
-   - 支持多轮对话
+5. **🐝 Hive AI Chat**
+   - Chat with AI to get creative suggestions and help
+   - Can ask questions about ComfyUI usage, workflow optimization, etc.
+   - Supports multi-turn conversations
 
-6. **🐝 Hive 翻译**
-   - 快速翻译提示词或文本内容
-   - 支持中英文互译
-   - 翻译结果可直接复制使用
+6. **🐝 Hive Translate**
+   - Quickly translate prompts or text content
+   - Supports translation between Chinese and English
+   - Translation results can be directly copied and used
 
-7. **🐝 Hive 修复节点**
-   - 当节点缺失或无法使用时，右键点击节点
-   - 系统会自动搜索节点的安装地址
-   - 如果有多个安装地址，可以选择合适的进行安装
-   - 一键修复缺失的节点
+7. **🐝 Hive Fix Node**
+   - When a node is missing or unusable, right-click on the node
+   - The system will automatically search for the node's installation address
+   - If there are multiple installation addresses, you can choose the appropriate one to install
+   - One-click fix for missing nodes
 
-8. **🐝 Hive 提示词反推**
-   - 分析图片内容，自动生成对应的提示词
-   - 支持生成中英文提示词
-   - 生成的提示词可直接复制使用
-   - 适合从图片反推工作流的场景
+8. **🐝 Hive Reverse Prompt**
+   - Analyze image content and automatically generate corresponding prompts
+   - Supports generating prompts in both Chinese and English
+   - Generated prompts can be directly copied and used
+   - Perfect for scenarios where you need to reverse-engineer workflows from images
 
-**注意**：使用 AI 相关功能需要先配置大语言模型 API。配置方法：
-1. 点击侧边栏的设置按钮
-2. 点击"配置大模型API"按钮
-3. 在"大语言模型API配置"中选择提供商并填写 API Key
-4. 选择模型后保存配置
+**Note**: Using AI-related features requires configuring the Large Language Model API first. Configuration method:
+1. Click the settings button in the sidebar
+2. Click the "Configure LLM API" button
+3. In "Large Language Model API Configuration", select a provider and fill in the API Key
+4. Select a model and save the configuration
 
-### ⚙️ 个性化设置
+### ⚙️ Personalization Settings
 
-点击 Hive Hub 顶部的 ⚙️ 按钮打开设置：
+Click the ⚙️ button at the top of Hive Hub to open settings:
 
-- **修改资料**：更改昵称、更换头像
-- **语言设置**：切换中文/英文界面，或选择"跟随系统"
-- **自动翻译**：开启后，收到的非当前语言消息会自动翻译
-- **消息提醒**：开启/关闭声音提醒
-- **提交反馈**：遇到问题或有建议？在这里提交反馈
+- **Edit Profile**: Change nickname, change avatar
+- **Language Settings**: Switch Chinese/English interface, or select "Follow System"
+- **Auto Translate**: When enabled, received messages not in current language will be automatically translated
+- **Message Notifications**: Enable/disable sound notifications
+- **Submit Feedback**: Encountered a problem or have a suggestion? Submit feedback here
 
-## 常见问题
+## FAQ
 
-### 💬 聊天相关问题
+### 💬 Chat Related Questions
 
-**Q: 打开 Hive Hub 后显示连接失败？**
+**Q: After opening Hive Hub, it shows connection failed?**
 
-A: 这通常是因为网络连接问题。请检查：
-- 网络连接是否正常
-- 是否能正常访问互联网
-- 如果问题持续，可以尝试刷新页面或重启 ComfyUI
+A: This is usually due to network connection issues. Please check:
+- Whether network connection is normal
+- Whether internet access is normal
+- If the problem persists, try refreshing the page or restarting ComfyUI
 
-**Q: 无法发送消息？**
+**Q: Unable to send messages?**
 
-A: 可能的原因：
-- 网络连接不稳定，等待自动重连
-- 消息发送过快，请稍后再试
+A: Possible reasons:
+- Unstable network connection, wait for automatic reconnection
+- Messages sent too quickly, please try again later
 
-**Q: 图片上传失败，提示包含不适宜内容？**
+**Q: Image upload failed, prompted as containing inappropriate content?**
 
-A: 为了保护社区环境，系统会自动检测图片内容。如果您的图片被误判，可以：
-- 尝试调整图片后再上传
-- 联系管理员说明情况
+A: To protect the community environment, the system automatically detects image content. If your image is misjudged, you can:
+- Try adjusting the image before uploading
+- Contact administrator to explain the situation
 
-**Q: 如何分享工作流？**
+**Q: How to share workflow?**
 
-A: 有两种方式：
-1. 上传工作流 JSON 文件
-2. 上传包含工作流的图片（ComfyUI 保存的图片会自动检测）
+A: There are two ways:
+1. Upload workflow JSON file
+2. Upload image containing workflow (ComfyUI saved images are automatically detected)
 
-小伙伴收到后，点击图片上的"加载工作流"按钮即可。
+After receiving, users can click the "Load Workflow" button on the image.
 
-**Q: 如何切换界面语言？**
+**Q: How to switch interface language?**
 
-A: 点击 Hive Hub 顶部的 ⚙️ 按钮，在设置中选择语言。支持中文和英文。
+A: Click the ⚙️ button at the top of Hive Hub, select language in settings. Supports Chinese and English.
 
-**Q: 消息自动翻译怎么用？**
+**Q: How to use message auto-translation?**
 
-A: 在设置中开启"消息自动翻译"。开启后，收到的非当前语言消息会自动翻译。需要网络连接。
+A: Enable "Auto Translate Messages" in settings. When enabled, received messages not in current language will be automatically translated. Requires network connection.
 
-### 📥 下载和安装问题
+### 📥 Download and Installation Issues
 
-**Q: 模型下载失败？**
+**Q: Model download failed?**
 
-A: 请检查：
-- 下载链接是否正确
-- 网络连接是否正常
-- 磁盘空间是否充足
-- 目标目录是否有写入权限
+A: Please check:
+- Whether download link is correct
+- Whether network connection is normal
+- Whether disk space is sufficient
+- Whether target directory has write permissions
 
-**Q: 下载完成后找不到模型？**
+**Q: Can't find model after download completes?**
 
-A: 下载完成后需要**重启 ComfyUI**，模型才会出现在列表中。
+A: After download completes, you need to **restart ComfyUI** for the model to appear in the list.
 
-**Q: 节点安装失败？**
+**Q: Node installation failed?**
 
-A: 可能的原因：
-- 如果安装 Git 仓库，需要先安装 Git 工具（[下载 Git](https://git-scm.com/)）
-- 网络连接问题，请检查网络
-- 链接格式不正确，确保是有效的 GitHub/GitLab/Gitee 链接
+A: Possible reasons:
+- If installing Git repository, Git tool needs to be installed first ([Download Git](https://git-scm.com/))
+- Network connection issues, please check network
+- Incorrect link format, ensure it's a valid GitHub/GitLab/Gitee link
 
-**Q: 节点安装后没有显示？**
+**Q: Node doesn't appear after installation?**
 
-A: 安装完成后需要**重启 ComfyUI**。如果重启后仍然没有：
-- 检查节点是否正确安装
-- 查看 ComfyUI 控制台是否有错误信息
-- 某些节点可能需要额外的依赖，请查看节点说明
+A: After installation completes, you need to **restart ComfyUI**. If it still doesn't appear after restart:
+- Check if node is correctly installed
+- Check ComfyUI console for error messages
+- Some nodes may require additional dependencies, please check node documentation
 
-**Q: 如何更新已安装的节点？**
+**Q: How to update an already installed node?**
 
-A: 如果节点是通过 Git 安装的，再次运行节点安装器并输入相同的链接，系统会自动更新。如果更新失败，可能需要手动删除节点后重新安装。
+A: If the node was installed via Git, run the node installer again with the same link, and the system will automatically update. If update fails, you may need to manually delete the node and reinstall.
 
-**Q: 支持哪些下载链接？**
+**Q: What download links are supported?**
 
-A: 支持所有标准的 HTTP/HTTPS 下载链接。对于大文件，如果服务器支持，会自动使用多线程加速下载。
+A: Supports all standard HTTP/HTTPS download links. For large files, if the server supports it, multi-threaded accelerated download will be automatically used.
 
 
-## 联系方式
+## Contact
 
-- **作者**：@luguoli（墙上的向日葵）
+- **Author**: @luguoli (墙上的向日葵)
 - **GitHub**: https://github.com/luguoli
 - **Email**: luguoli@vip.qq.com
 
 ---
 
-**提示**：使用本插件时，请确保遵守相关模型和节点的使用许可协议。
+**Note**: When using this plugin, please ensure compliance with relevant model and node usage license agreements.
 
 
 ---
 
-**用❤️为ComfyUI社区制作**
+**Made with ❤️ for the ComfyUI community**
