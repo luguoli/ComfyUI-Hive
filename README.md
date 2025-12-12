@@ -153,6 +153,7 @@ git clone https://gitee.com/luguoli/ComfyUI-Hive.git
 **方法3：手动安装**
 1. 下载项目 ZIP 文件并解压
 2. 将文件夹放到 `ComfyUI/custom_nodes/` 目录下
+3. 注意将文件夹名改为 `ComfyUI-Hive`
 
 ### 第二步：启动 ComfyUI
 
