@@ -66,6 +66,16 @@ export function registerNodeExtension() {
                 }
             };
 
+            // 工作流提取选项
+            const workflowExtractorMenuOption = {
+                content: `🐝 ${getText('workflowExtractor.extractWorkflow')}`,
+                callback: () => {
+                    if (typeof window.showWorkflowExtractorModal === 'function') {
+                        window.showWorkflowExtractorModal();
+                    }
+                }
+            };
+
             // AI对话选项
             const aiChatMenuOption = {
                 content: `🐝 ${getText('contextMenu.aiChat')}`,
@@ -86,8 +96,17 @@ export function registerNodeExtension() {
                 }
             };
 
-            
-
+            // Hive 其它功能菜单组（带子菜单）
+            const otherFeaturesMenuOption = {
+                content: `🐝 ${getText('workflowExtractor.otherFeatures')}`,
+                has_submenu: true,
+                callback: () => {
+                    // 子菜单项的回调
+                },
+                submenu: {
+                    options: [workflowExtractorMenuOption, aiChatMenuOption, translateMenuOption]
+                }
+            };
 
             // 重写 getNodeMenuOptions 方法
             if (typeof LGraphCanvas !== 'undefined' && LGraphCanvas.prototype.getNodeMenuOptions) {
@@ -106,8 +125,8 @@ export function registerNodeExtension() {
                         }
                     };
 
-                    // 节点右键菜单：顺序：提示词扩写、随机提示词、摄影提示词生成器、提示词收藏、与AI对话、翻译、修复节点
-                    return [expandPromptMenuOption, randomPromptMenuOption, photoPromptMenuOption, promptFavoriteMenuOption, aiChatMenuOption, translateMenuOption, fixNodeMenuOption, null, ...originalOptions];
+                    // 节点右键菜单：顺序：提示词扩写、随机提示词、摄影提示词生成器、提示词收藏、修复节点、Hive其它功能(子菜单:工作流提取、与AI对话、翻译)
+                    return [expandPromptMenuOption, randomPromptMenuOption, photoPromptMenuOption, promptFavoriteMenuOption, fixNodeMenuOption, otherFeaturesMenuOption, null, ...originalOptions];
                 };
                 console.log('🐝 Hive: Node extension registered successfully');
             } else {
@@ -119,8 +138,7 @@ export function registerNodeExtension() {
                 LGraphCanvas.prototype.getCanvasMenuOptions = function() {
                     const originalOptions = originalGetCanvasMenuOptions.apply(this, arguments);
 
-                    // 画布右键菜单：顺序：提示词扩写、随机提示词、摄影提示词生成器、提示词收藏、与AI对话、翻译
-                    return [expandPromptMenuOption, randomPromptMenuOption, photoPromptMenuOption, promptFavoriteMenuOption, aiChatMenuOption, translateMenuOption, null, ...originalOptions];
+                    return [expandPromptMenuOption, randomPromptMenuOption, photoPromptMenuOption, promptFavoriteMenuOption, otherFeaturesMenuOption, null, ...originalOptions];
                 };
                 console.log('🐝 Hive: Canvas extension registered successfully');
             } else {
@@ -6048,6 +6066,566 @@ async function showReversePromptModal(imageUrl) {
 // 导出函数供全局使用
 if (typeof window !== 'undefined') {
     window.showReversePromptModal = showReversePromptModal;
+}
+
+// 从视频文件中提取工作流数据
+async function extractWorkflowFromVideo(file) {
+    return new Promise((resolve) => {
+        try {
+            // 方法1: 尝试从视频文件的元数据中提取（读取文件末尾的JSON数据）
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                try {
+                    const buffer = event.target.result;
+                    const uint8Array = new Uint8Array(buffer);
+                    const decoder = new TextDecoder("utf-8");
+                    
+                    // 从文件末尾查找JSON数据（ComfyUI可能将工作流数据存储在视频文件末尾）
+                    const searchLength = Math.min(100000, uint8Array.length); // 搜索最后100KB
+                    const searchStart = uint8Array.length - searchLength;
+                    const searchArray = uint8Array.slice(searchStart);
+                    const fileString = decoder.decode(searchArray);
+                    
+                    // 查找工作流JSON
+                    const findWorkflowJSON = (text) => {
+                        const nodesIndex = text.lastIndexOf('"nodes"');
+                        if (nodesIndex === -1) return null;
+                        
+                        let startPos = nodesIndex;
+                        while (startPos >= 0 && text[startPos] !== '{') {
+                            startPos--;
+                        }
+                        if (startPos === -1) return null;
+                        
+                        let depth = 0;
+                        let endPos = startPos;
+                        for (let i = startPos; i < text.length; i++) {
+                            if (text[i] === '{') depth++;
+                            else if (text[i] === '}') {
+                                depth--;
+                                if (depth === 0) {
+                                    endPos = i;
+                                    break;
+                                }
+                            }
+                        }
+                        if (depth === 0 && endPos > startPos) {
+                            return text.substring(startPos, endPos + 1);
+                        }
+                        return null;
+                    };
+                    
+                    const jsonStr = findWorkflowJSON(fileString);
+                    if (jsonStr) {
+                        try {
+                            const jsonData = JSON.parse(jsonStr);
+                            if (jsonData && typeof jsonData === 'object' && jsonData.nodes && Array.isArray(jsonData.nodes)) {
+                                console.log('🐝 Hive: Found workflow data in video file');
+                                resolve({ workflow: jsonData, prompt: null });
+                                return;
+                            }
+                        } catch (error) {
+                            console.log('🐝 Hive: Failed to parse JSON from video:', error.message);
+                        }
+                    }
+                    
+                    // 方法2: 尝试从视频的第一帧中提取（将视频的第一帧作为图片处理）
+                    const video = document.createElement('video');
+                    video.preload = 'metadata';
+                    video.muted = true;
+                    video.playsInline = true;
+                    
+                    const videoUrl = URL.createObjectURL(file);
+                    video.src = videoUrl;
+                    
+                    video.addEventListener('loadedmetadata', () => {
+                        // 设置视频到第一帧
+                        video.currentTime = 0.1; // 稍微偏移以确保有帧数据
+                    });
+                    
+                    video.addEventListener('seeked', async () => {
+                        try {
+                            // 将视频的第一帧绘制到canvas
+                            const canvas = document.createElement('canvas');
+                            canvas.width = video.videoWidth || 1920;
+                            canvas.height = video.videoHeight || 1080;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                            
+                            // 将canvas转换为blob
+                            canvas.toBlob(async (blob) => {
+                                if (blob) {
+                                    // 将blob转换为File对象
+                                    const imageFile = new File([blob], 'video_frame.png', { type: 'image/png' });
+                                    
+                                    // 使用图片提取函数提取工作流
+                                    let extractFunction = null;
+                                    if (typeof window.extractWorkflowFromImage === 'function') {
+                                        extractFunction = window.extractWorkflowFromImage;
+                                    } else {
+                                        try {
+                                            const module = await import('./hive_data.js');
+                                            if (module && module.extractWorkflowFromImage) {
+                                                extractFunction = module.extractWorkflowFromImage;
+                                            }
+                                        } catch (e) {
+                                            console.warn('🐝 Hive: Failed to import extractWorkflowFromImage:', e);
+                                        }
+                                    }
+                                    
+                                    if (extractFunction) {
+                                        const extracted = await extractFunction(imageFile);
+                                        URL.revokeObjectURL(videoUrl);
+                                        if (extracted && extracted.workflow) {
+                                            console.log('🐝 Hive: Found workflow data in video first frame');
+                                            resolve(extracted);
+                                            return;
+                                        }
+                                    }
+                                }
+                                
+                                URL.revokeObjectURL(videoUrl);
+                                resolve(null);
+                            }, 'image/png');
+                        } catch (error) {
+                            console.log('🐝 Hive: Failed to extract workflow from video frame:', error);
+                            URL.revokeObjectURL(videoUrl);
+                            resolve(null);
+                        }
+                    });
+                    
+                    video.addEventListener('error', () => {
+                        console.log('🐝 Hive: Failed to load video for frame extraction');
+                        URL.revokeObjectURL(videoUrl);
+                        resolve(null);
+                    });
+                    
+                    // 如果5秒后还没有结果，超时
+                    setTimeout(() => {
+                        if (video.src) {
+                            URL.revokeObjectURL(videoUrl);
+                            resolve(null);
+                        }
+                    }, 5000);
+                    
+                } catch (error) {
+                    console.log('🐝 Hive: Error extracting workflow from video:', error);
+                    resolve(null);
+                }
+            };
+            
+            reader.onerror = () => {
+                resolve(null);
+            };
+            
+            reader.readAsArrayBuffer(file);
+        } catch (error) {
+            console.log('🐝 Hive: Error in extractWorkflowFromVideo:', error);
+            resolve(null);
+        }
+    });
+}
+
+
+// 工作流提取弹窗
+async function showWorkflowExtractorModal() {
+    // 移除现有的弹窗
+    const existingModal = document.getElementById('hive-workflow-extractor-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // 获取语言设置
+    const currentLang = getCurrentLanguage();
+    const isZh = currentLang === 'zh';
+
+    // 获取翻译文本
+    const titleText = getText('workflowExtractor.title', '提取工作流');
+    const uploadFileText = getText('workflowExtractor.uploadFile', '选择文件');
+    const uploadImageOrVideoText = getText('workflowExtractor.uploadImageOrVideo', '选择图片或视频');
+    const dragDropFilesText = getText('workflowExtractor.dragDropFiles', '拖放文件到这里，或点击选择文件');
+    const supportedFormatsText = getText('workflowExtractor.supportedFormats', '支持格式：PNG、JPG、WebP、MP4、MOV');
+    const extractingText = getText('workflowExtractor.extracting', '正在提取...');
+    const extractFailedText = getText('workflowExtractor.extractFailed', '提取失败：');
+    const noWorkflowFoundText = getText('workflowExtractor.noWorkflowFound', '未找到工作流数据');
+    const workflowExtractedText = getText('workflowExtractor.workflowExtracted', '工作流提取成功');
+    const workflowDataText = getText('workflowExtractor.workflowData', '工作流数据');
+    const downloadWorkflowText = getText('workflowExtractor.downloadWorkflow', '下载工作流');
+    const closeText = getText('workflowExtractor.close', '关闭');
+
+    // 创建弹窗
+    const modal = document.createElement('div');
+    modal.id = 'hive-workflow-extractor-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 10000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: var(--font-family, Arial, sans-serif);
+        padding: 20px;
+    `;
+
+    modal.innerHTML = `
+        <div style="
+            background-color: var(--comfy-menu-bg, #2d2d2d);
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 600px;
+            max-height: 90vh;
+            width: 100%;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            position: relative;
+        ">
+            <div style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+                border-bottom: 1px solid var(--border-color, #444);
+                padding-bottom: 12px;
+            ">
+                <h2 style="
+                    margin: 0;
+                    color: var(--input-text, #fff);
+                    font-size: 18px;
+                    font-weight: 600;
+                ">${titleText}</h2>
+                <button id="hive-workflow-extractor-close" style="
+                    background: none;
+                    border: none;
+                    color: var(--input-text, #fff);
+                    font-size: 24px;
+                    cursor: pointer;
+                    padding: 0;
+                    width: 30px;
+                    height: 30px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 4px;
+                ">×</button>
+            </div>
+
+            <div id="hive-workflow-extractor-preview" style="
+                display: none;
+                margin-bottom: 20px;
+                text-align: center;
+            ">
+                <div id="hive-workflow-extractor-preview-content" style="
+                    max-width: 100%;
+                    max-height: 400px;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    display: inline-block;
+                "></div>
+            </div>
+
+            <div id="hive-workflow-extractor-upload-area" style="
+                border: 2px dashed var(--border-color, #666);
+                border-radius: 8px;
+                padding: 40px;
+                text-align: center;
+                cursor: pointer;
+                transition: all 0.3s;
+                margin-bottom: 20px;
+            ">
+                <div style="
+                    color: var(--input-text, #fff);
+                    font-size: 16px;
+                    margin-bottom: 8px;
+                ">${uploadImageOrVideoText}</div>
+                <div style="
+                    color: var(--descrip-text, #999);
+                    font-size: 14px;
+                    margin-bottom: 4px;
+                ">${dragDropFilesText}</div>
+                <div style="
+                    color: var(--descrip-text, #999);
+                    font-size: 12px;
+                ">${supportedFormatsText}</div>
+                <input type="file" id="hive-workflow-extractor-file-input" accept="image/*,video/*" style="display: none;">
+            </div>
+
+            <div id="hive-workflow-extractor-results" style="display: none;">
+                <div style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 20px;
+                ">
+                    <h3 style="
+                        color: var(--input-text, #fff);
+                        font-size: 16px;
+                        margin: 0;
+                        font-weight: 600;
+                    ">${workflowDataText}</h3>
+                    <button id="hive-workflow-extractor-download" style="
+                        background-color: var(--comfy-menu-bg, #2d2d2d);
+                        border: 1px solid var(--border-color, #666);
+                        color: var(--input-text, #fff);
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 14px;
+                    ">${downloadWorkflowText}</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // 状态变量
+    let extractedWorkflow = null;
+
+
+    // 处理文件上传
+    const handleFileUpload = async (file) => {
+        if (!file) return;
+
+        // 显示文件预览
+        const previewArea = modal.querySelector('#hive-workflow-extractor-preview');
+        const previewContent = modal.querySelector('#hive-workflow-extractor-preview-content');
+        if (previewArea && previewContent) {
+            if (file.type.startsWith('image/')) {
+                previewContent.innerHTML = `<img src="${URL.createObjectURL(file)}" style="width: 100%; height: auto; max-height: 400px; object-fit: contain; border-radius: 4px;">`;
+            } else if (file.type.startsWith('video/')) {
+                previewContent.innerHTML = `<video controls style="width: 100%; height: auto; max-height: 400px; object-fit: contain; border-radius: 4px;"><source src="${URL.createObjectURL(file)}" type="${file.type}"></video>`;
+            }
+            previewArea.style.display = 'block';
+        }
+
+        // 显示加载状态
+        const uploadArea = modal.querySelector('#hive-workflow-extractor-upload-area');
+        if (uploadArea) {
+            uploadArea.innerHTML = `
+                <div style="color: var(--input-text, #fff); font-size: 16px;">${extractingText}</div>
+            `;
+        }
+
+        try {
+            // 检查是否是图片或视频
+            const isImage = file.type.startsWith('image/');
+            const isVideo = file.type.startsWith('video/');
+
+            if (!isImage && !isVideo) {
+                throw new Error('不支持的文件格式');
+            }
+
+            // 提取工作流数据
+            let workflowData = null;
+            let promptData = null;
+
+            if (isImage) {
+                // 从图片提取
+                let extractFunction = null;
+                
+                // 尝试多种方式获取函数
+                if (typeof window.extractWorkflowFromImage === 'function') {
+                    extractFunction = window.extractWorkflowFromImage;
+                } else {
+                    try {
+                        // 尝试动态导入
+                        const module = await import('./hive_data.js');
+                        if (module && module.extractWorkflowFromImage) {
+                            extractFunction = module.extractWorkflowFromImage;
+                        }
+                    } catch (e) {
+                        console.warn('🐝 Hive: Failed to import extractWorkflowFromImage:', e);
+                    }
+                }
+                
+                if (extractFunction) {
+                    const extracted = await extractFunction(file);
+                    if (extracted) {
+                        workflowData = extracted.workflow;
+                        promptData = extracted.prompt;
+                    }
+                } else {
+                    throw new Error('无法加载工作流提取函数');
+                }
+            } else if (isVideo) {
+                // 从视频文件提取工作流
+                const extracted = await extractWorkflowFromVideo(file);
+                if (extracted) {
+                    workflowData = extracted.workflow;
+                    promptData = extracted.prompt;
+                }
+                if (!workflowData) {
+                    throw new Error(noWorkflowFoundText);
+                }
+            }
+
+            if (!workflowData) {
+                throw new Error(noWorkflowFoundText);
+            }
+
+            extractedWorkflow = workflowData;
+
+            // 显示结果
+            const resultsDiv = modal.querySelector('#hive-workflow-extractor-results');
+            if (resultsDiv) {
+                resultsDiv.style.display = 'block';
+
+                // 在结果区域顶部添加成功提示
+                const successMessage = document.createElement('div');
+                successMessage.id = 'hive-workflow-extractor-success-message';
+                successMessage.style.cssText = `
+                    background-color: rgba(46, 204, 113, 0.1);
+                    border: 1px solid #2ecc71;
+                    border-radius: 6px;
+                    padding: 12px;
+                    margin-bottom: 16px;
+                    text-align: center;
+                    color: #2ecc71;
+                    font-weight: 600;
+                    font-size: 14px;
+                `;
+                successMessage.innerHTML = `✅ ${workflowExtractedText}`;
+
+                // 将成功消息插入到结果区域的开头
+                resultsDiv.insertBefore(successMessage, resultsDiv.firstChild);
+            }
+
+            // 更新上传区域
+            if (uploadArea) {
+                uploadArea.style.display = 'none';
+            }
+
+            // 显示成功提示
+            if (typeof window.showToast === 'function') {
+                window.showToast(workflowExtractedText, 'success');
+            }
+
+        } catch (error) {
+            console.error('🐝 Hive: Workflow extraction failed:', error);
+            
+            // 显示错误
+            if (uploadArea) {
+                uploadArea.innerHTML = `
+                    <div style="
+                        color: #ff6b6b;
+                        font-size: 18px;
+                        font-weight: 600;
+                        margin-bottom: 12px;
+                        text-align: center;
+                    ">⚠️ ${extractFailedText}</div>
+                    <div style="
+                        color: #ff6b6b;
+                        font-size: 16px;
+                        margin-bottom: 16px;
+                        text-align: center;
+                        padding: 12px;
+                        background-color: rgba(255, 107, 107, 0.1);
+                        border: 1px solid #ff6b6b;
+                        border-radius: 6px;
+                    ">${error.message || error}</div>
+                    <div style="color: var(--descrip-text, #999); font-size: 14px; margin-bottom: 4px;">${dragDropFilesText}</div>
+                    <div style="color: var(--descrip-text, #999); font-size: 12px;">${supportedFormatsText}</div>
+                `;
+            }
+
+            if (typeof window.showToast === 'function') {
+                window.showToast(`${extractFailedText}${error.message || error}`, 'error');
+            }
+        }
+    };
+
+    // 绑定事件
+    const fileInput = modal.querySelector('#hive-workflow-extractor-file-input');
+    const uploadArea = modal.querySelector('#hive-workflow-extractor-upload-area');
+    const closeBtn = modal.querySelector('#hive-workflow-extractor-close');
+    const downloadBtn = modal.querySelector('#hive-workflow-extractor-download');
+
+    // 文件选择
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleFileUpload(file);
+            }
+        });
+    }
+
+    // 点击上传区域
+    if (uploadArea) {
+        uploadArea.addEventListener('click', () => {
+            if (fileInput) {
+                fileInput.click();
+            }
+        });
+
+        // 拖放支持
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--primary-color, #ffe066)';
+            uploadArea.style.backgroundColor = 'var(--comfy-input-bg, #1e1e1e)';
+        });
+
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--border-color, #666)';
+            uploadArea.style.backgroundColor = 'transparent';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--border-color, #666)';
+            uploadArea.style.backgroundColor = 'transparent';
+            
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                handleFileUpload(file);
+            }
+        });
+    }
+
+    // 关闭按钮
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            modal.remove();
+        });
+    }
+
+    // 下载工作流
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', () => {
+            if (!extractedWorkflow) return;
+            
+            const jsonStr = JSON.stringify(extractedWorkflow, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'workflow.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+    }
+
+
+    // Esc键关闭
+    const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+            modal.remove();
+            document.removeEventListener('keydown', handleKeyDown);
+        }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+}
+
+// 导出函数供全局使用
+if (typeof window !== 'undefined') {
+    window.showWorkflowExtractorModal = showWorkflowExtractorModal;
 }
 
 

@@ -448,6 +448,24 @@ const HIVE_I18N = {
             importSuccessWithDuplicates: '导入成功！已导入{newFavorites}条收藏和{newCategories}个分类，{duplicateFavorites}条收藏和{duplicateCategories}个分类因重复已跳过。',
         },
         
+        // 工作流提取功能相关
+        workflowExtractor: {
+            otherFeatures: 'Hive 其它功能',
+            extractWorkflow: 'Hive 提取工作流',
+            title: '提取工作流',
+            uploadFile: '选择文件',
+            uploadImageOrVideo: '选择图片或视频',
+            dragDropFiles: '拖放文件到这里，或点击选择文件',
+            supportedFormats: '支持格式：PNG、JPG、WebP、MP4、MOV',
+            extracting: '正在提取...',
+            extractFailed: '提取失败：',
+            noWorkflowFound: '未找到工作流数据',
+            workflowExtracted: '工作流提取成功',
+            workflowData: '工作流数据',
+            downloadWorkflow: '下载工作流',
+            close: '关闭',
+        },
+        
         // 设置界面
         settings: {
             title: '设置',
@@ -1130,6 +1148,24 @@ const HIVE_I18N = {
             importConfirmWithDuplicates: 'Import data contains:\n- {newFavorites} new favorites ({duplicateFavorites} duplicates will be skipped)\n- {newCategories} new categories ({duplicateCategories} duplicates will be skipped)\n\nAre you sure you want to import?',
             importConfirm: 'Are you sure you want to import data? This will add {newFavorites} favorites and {newCategories} categories to existing data.',
             importSuccessWithDuplicates: 'Import successful! Imported {newFavorites} favorites and {newCategories} categories, {duplicateFavorites} favorites and {duplicateCategories} categories skipped due to duplicates.',
+        },
+        
+        // Workflow Extractor feature
+        workflowExtractor: {
+            otherFeatures: 'Hive Other Features',
+            extractWorkflow: 'Hive Extract Workflow',
+            title: 'Extract Workflow',
+            uploadFile: 'Select File',
+            uploadImageOrVideo: 'Select Image or Video',
+            dragDropFiles: 'Drag and drop files here, or click to select file',
+            supportedFormats: 'Supported formats: PNG, JPG, WebP, MP4, MOV',
+            extracting: 'Extracting...',
+            extractFailed: 'Extraction failed: ',
+            noWorkflowFound: 'No workflow data found',
+            workflowExtracted: 'Workflow extracted successfully',
+            workflowData: 'Workflow Data',
+            downloadWorkflow: 'Download Workflow',
+            close: 'Close',
         },
         
         // Settings
