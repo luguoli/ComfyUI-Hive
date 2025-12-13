@@ -15,7 +15,7 @@ ComfyUI-Hive is a community plugin designed for ComfyUI users, allowing you to:
 - 🎨 **Discover creative inspiration**: Browse, search, and favorite quality works, workflows, nodes, models, and tutorials from the community
 - 📥 **Easy resource access**: Can't access node GitHub links? Can't access HuggingFace? Don't know how to install nodes? Don't know how to download models? Don't worry! Built-in mirror addresses, built-in node installer and model downloader, one-click download models and install nodes, no manual operation required
 - 🔄 **Share workflows**: Don't know how to generate that image you like? Load it to the canvas with one click
-- 🖱️ **Powerful context menu**: Right-click to use expand prompt, random prompt, photo prompt generator, prompt favorite, AI chat, translate, reverse prompt, and fix node features
+- 🖱️ **Powerful context menu**: Right-click to use expand prompt, random prompt, photo prompt generator, prompt favorite, AI chat, translate, reverse prompt, fix node, and extract workflow features
 
 #### If this project helps you, please give it a ⭐Star — it lets me know there are humans out there using it!
 
@@ -129,6 +129,10 @@ Hive provides rich context menu features to make your workflow more efficient:
 8. Reverse Prompt
 
 <img src="images/15-en.png" width="500" style="margin-left: 30px;" />
+
+9. Extract Workflow
+
+<img src="images/23-en.png" width="500" style="margin-left: 30px;" />
 
 All AI features require configuring the Large Language Model API first (configure in settings).
 
@@ -283,6 +287,13 @@ Hive provides rich context menu features to make your workflow more efficient:
    - Supports generating prompts in both Chinese and English
    - Generated prompts can be directly copied and used
    - Perfect for scenarios where you need to reverse-engineer workflows from images
+
+9. **🐝 Hive Extract Workflow**
+   - Extract workflow data embedded in images or videos
+   - Supports PNG, JPG, WebP images and MP4, MOV videos
+   - Simply drag and drop or select a file, automatic extraction
+   - Provides download button for extracted workflow JSON file
+   - No need to configure API, works immediately after installation
 
 **Note**: Using AI-related features requires configuring the Large Language Model API first. Configuration method:
 1. Click the settings button in the sidebar
